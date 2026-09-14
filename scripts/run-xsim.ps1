@@ -70,6 +70,13 @@ try {
 
     New-Item -ItemType Directory -Force -Path $resultDirectory | Out-Null
     Copy-Item -LiteralPath $logPath -Destination (Join-Path $resultDirectory 'sim.log') -Force
+    if ($Test -eq 'core') {
+        $tracePath = Join-Path $workingDirectory 'rtl_trace.jsonl'
+        if (-not (Test-Path -LiteralPath $tracePath -PathType Leaf)) {
+            throw "core simulation did not produce a trace: $tracePath"
+        }
+        Copy-Item -LiteralPath $tracePath -Destination (Join-Path $resultDirectory 'rtl_trace.jsonl') -Force
+    }
     "XSIM_PASS`t$Test`t$(Join-Path $resultDirectory 'sim.log')"
 }
 finally {

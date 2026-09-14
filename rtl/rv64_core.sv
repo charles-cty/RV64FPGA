@@ -13,6 +13,7 @@ module rv64_core (
   output logic        commit_valid,
   output logic [63:0] commit_pc,
   output logic [31:0] commit_instruction,
+  output logic [63:0] commit_next_pc,
   output logic        commit_rd_write,
   output logic [4:0]  commit_rd,
   output logic [63:0] commit_rd_value,
@@ -227,6 +228,7 @@ module rv64_core (
       commit_valid <= 1'b0;
       commit_pc <= '0;
       commit_instruction <= '0;
+      commit_next_pc <= '0;
       commit_rd_write <= 1'b0;
       commit_rd <= '0;
       commit_rd_value <= '0;
@@ -237,6 +239,7 @@ module rv64_core (
         commit_valid <= 1'b1;
         commit_pc <= program_counter;
         commit_instruction <= instruction_data;
+        commit_next_pc <= next_program_counter;
         commit_rd_write <= writeback_enable && (writeback_address != 5'd0) && !illegal_instruction;
         commit_rd <= writeback_address;
         commit_rd_value <= writeback_value;

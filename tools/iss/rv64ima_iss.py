@@ -46,6 +46,27 @@ class RV64IMAISS:
     def __init__(self, start_pc: int = 0) -> None:
         self.pc = unsigned(start_pc, 64)
         self.registers = [0] * 32
+        self.memory: dict[int, int] = {}
+
+    def _load(self, address: int, width: int, is_unsigned: bool) -> int:
+        raw = sum(self.memory.get(address + offset, 0) << (offset * 8) for offset in range(width))
+        return raw if is_unsigned else sign_extend(raw, width * 8)
+
+    def _store(self, address: int, value: int, width: int) -> None:
+        for offset in range(width):
+            self.memory[address + offset] = (value >> (offset * 8)) & 0xFF
+
+    @staticmethod
+    def _branch_immediate(instruction: int) -> int:
+        value = (((instruction >> 31) & 1) << 12) | (((instruction >> 7) & 1) << 11)
+        value |= (((instruction >> 25) & 0x3F) << 5) | (((instruction >> 8) & 0xF) << 1)
+        return signed(value, 13)
+
+    @staticmethod
+    def _jump_immediate(instruction: int) -> int:
+        value = (((instruction >> 31) & 1) << 20) | (((instruction >> 12) & 0xFF) << 12)
+        value |= (((instruction >> 20) & 1) << 11) | (((instruction >> 21) & 0x3FF) << 1)
+        return signed(value, 21)
 
     def _read_register(self, index: int) -> int:
         return 0 if index == 0 else self.registers[index]
@@ -69,7 +90,48 @@ class RV64IMAISS:
         next_pc = unsigned(self.pc + 4, 64)
         write_value: int | None
 
-        if opcode == 0x13:
+        if opcode == 0x37:
+            write_value = self._write_register(rd, sign_extend(instruction & 0xFFFFF000, 32))
+        elif opcode == 0x17:
+            write_value = self._write_register(rd, self.pc + sign_extend(instruction & 0xFFFFF000, 32))
+        elif opcode == 0x6F:
+            write_value = self._write_register(rd, self.pc + 4)
+            next_pc = unsigned(self.pc + self._jump_immediate(instruction), 64)
+        elif opcode == 0x67:
+            if funct3 != 0:
+                raise IllegalInstruction(f"unsupported JALR funct3: {instruction:#010x}")
+            write_value = self._write_register(rd, self.pc + 4)
+            next_pc = unsigned((lhs + signed(instruction >> 20, 12)) & ~1, 64)
+        elif opcode == 0x63:
+            if funct3 == 0:
+                taken = lhs == self._read_register(rs2)
+            elif funct3 == 1:
+                taken = lhs != self._read_register(rs2)
+            elif funct3 == 4:
+                taken = signed(lhs, 64) < signed(self._read_register(rs2), 64)
+            elif funct3 == 5:
+                taken = signed(lhs, 64) >= signed(self._read_register(rs2), 64)
+            elif funct3 == 6:
+                taken = lhs < self._read_register(rs2)
+            elif funct3 == 7:
+                taken = lhs >= self._read_register(rs2)
+            else:
+                raise IllegalInstruction(f"unsupported branch funct3: {instruction:#010x}")
+            if taken:
+                next_pc = unsigned(self.pc + self._branch_immediate(instruction), 64)
+            write_value = None
+        elif opcode == 0x03:
+            if funct3 not in (0, 1, 2, 3, 4, 5, 6):
+                raise IllegalInstruction(f"unsupported load funct3: {instruction:#010x}")
+            width = {0: 1, 1: 2, 2: 4, 3: 8, 4: 1, 5: 2, 6: 4}[funct3]
+            write_value = self._write_register(rd, self._load(lhs + signed(instruction >> 20, 12), width, funct3 in (4, 5, 6)))
+        elif opcode == 0x23:
+            if funct3 not in (0, 1, 2, 3):
+                raise IllegalInstruction(f"unsupported store funct3: {instruction:#010x}")
+            immediate = signed(((instruction >> 25) << 5) | ((instruction >> 7) & 0x1F), 12)
+            self._store(lhs + immediate, self._read_register(rs2), {0: 1, 1: 2, 2: 4, 3: 8}[funct3])
+            write_value = None
+        elif opcode == 0x13:
             immediate = signed(instruction >> 20, 12)
             if funct3 == 0x0:
                 write_value = self._write_register(rd, lhs + immediate)

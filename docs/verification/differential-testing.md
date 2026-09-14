@@ -29,3 +29,14 @@
 `rv64_core` 当前是单周期顺序执行原型，先用于验证架构状态和 BRAM 事务；它不是最终
 的三级流水线实现。三级流水线将在该提交契约稳定后替换，避免将内部时序差异混入
 differential 判定。
+
+`scripts/run-core-diff.sh` 已将核心 smoke program 接入完整流程：xsim testbench 导出
+`build/xsim/core/rtl_trace.jsonl`，独立 ISS 生成 `iss_trace.jsonl`，再由比较器逐条检查
+`pc`、指令、下一 PC、目的寄存器和写回值。该 trace 目前不包含 CSR/trap 字段；这些
+字段会在 CSR 实现进入核心后加入格式并保持向后不兼容地升级。
+
+运行入口：
+
+```bash
+./scripts/run-core-diff.sh
+```

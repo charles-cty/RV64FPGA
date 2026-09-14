@@ -15,12 +15,14 @@ module tb_rv64_core;
   logic commit_valid;
   logic [63:0] commit_pc;
   logic [31:0] commit_instruction;
+  logic [63:0] commit_next_pc;
   logic commit_rd_write;
   logic [4:0] commit_rd;
   logic [63:0] commit_rd_value;
   logic illegal_instruction;
   logic [31:0] instruction_memory [0:31];
   logic [63:0] data_memory [0:15];
+  integer trace_file;
   integer failures;
   integer commit_count;
   integer index;
@@ -58,6 +60,11 @@ module tb_rv64_core;
     reset = 1'b1;
     failures = 0;
     commit_count = 0;
+    trace_file = $fopen("rtl_trace.jsonl", "w");
+    if (trace_file == 0) begin
+      $display("SIM FAIL: could not open rtl_trace.jsonl");
+      $fatal(1);
+    end
     for (index = 0; index < 32; index = index + 1) begin
       instruction_memory[index] = 32'h0000_0013;
     end
@@ -83,6 +90,13 @@ module tb_rv64_core;
     repeat (10) begin
       @(posedge clk);
       #1;
+      if (commit_valid) begin
+        if (commit_rd_write) begin
+          $fdisplay(trace_file, "{\"pc\":\"0x%016h\",\"instruction\":\"0x%08h\",\"next_pc\":\"0x%016h\",\"rd\":%0d,\"rd_value\":\"0x%016h\"}", commit_pc, commit_instruction, commit_next_pc, commit_rd, commit_rd_value);
+        end else begin
+          $fdisplay(trace_file, "{\"pc\":\"0x%016h\",\"instruction\":\"0x%08h\",\"next_pc\":\"0x%016h\",\"rd\":%0d,\"rd_value\":null}", commit_pc, commit_instruction, commit_next_pc, commit_rd);
+        end
+      end
       case (commit_count)
         0: expect_commit("addi x1", 64'd0);
         1: expect_commit("addi x2", 64'd4);
@@ -114,9 +128,11 @@ module tb_rv64_core;
     end
 
     if (failures != 0) begin
+      $fclose(trace_file);
       $display("SIM FAIL: %0d core checks failed", failures);
       $fatal(1);
     end
+    $fclose(trace_file);
     $display("SIM PASS: rv64_core BRAM program regression");
     $finish;
   end

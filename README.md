@@ -23,13 +23,15 @@
 ```bash
 uv run python -m unittest discover -s tests
 ./scripts/run-xsim.sh alu
+./scripts/run-core-diff.sh
 ```
 
 `run-xsim.sh` 只会调用 Vivado xsim：它把所需文件复制到 Windows 本地临时目录后执行
 `xvlog`、`xelab`、`xsim`，并检查日志中的 `SIM PASS`。它不会运行综合、实现、下载或
 flash 编程。
 
-可用的 xsim 回归名为 `alu`、`decoder`、`regfile`、`imm` 和 `core`。
+可用的 xsim 回归名为 `alu`、`decoder`、`regfile`、`imm` 和 `core`。`run-core-diff.sh`
+会在 `core` xsim 完成后生成独立 ISS 期望 trace，并运行 RTL↔ISS 比较器。
 
 ## 当前状态
 
