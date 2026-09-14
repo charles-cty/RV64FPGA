@@ -26,13 +26,14 @@ uv run python -m unittest discover -s tests
 ./scripts/run-core-diff.sh
 ./scripts/run-soc-cache-diff.sh
 ./scripts/run-soc-mmu-diff.sh
+./scripts/run-soc-mmu-fault-diff.sh
 ```
 
 `run-xsim.sh` 只会调用 Vivado xsim：它把所需文件复制到 Windows 本地临时目录后执行
 `xvlog`、`xelab`、`xsim`，并检查日志中的 `SIM PASS`。它不会运行综合、实现、下载或
 flash 编程。
 
-可用的 xsim 回归名为 `alu`、`decoder`、`regfile`、`imm`、`core`、`core_csr`、`core_atomic`、`core_alignment`、`soc`、`soc_uart`、`soc_irq`、`soc_mmu`、`soc_mmu_fault`、`soc_cache_diff`、`soc_mmu_diff`、`csr`、`atomic`、`cache`、`clint`、`plic`、`uart` 和 `mmu`。`run-core-diff.sh`
+可用的 xsim 回归名为 `alu`、`decoder`、`regfile`、`imm`、`core`、`core_csr`、`core_atomic`、`core_alignment`、`soc`、`soc_uart`、`soc_irq`、`soc_mmu`、`soc_mmu_fault`、`soc_mmu_fault_diff`、`soc_cache_diff`、`soc_mmu_diff`、`csr`、`atomic`、`cache`、`clint`、`plic`、`uart` 和 `mmu`。`run-core-diff.sh`
 会在 `core` xsim 完成后生成独立 ISS 期望 trace，并运行 RTL↔ISS 比较器。
 
 ## 当前状态
@@ -43,6 +44,7 @@ CPU+BRAM 原型、独立 Python ISS、trace 比较器、CSR 单元以及已接�
 MMIO 已接入 BRAM SoC，timer trap 已通过 xsim。三级流水线、完整异常/delegation、
 PLIC 外部源接线、DDR3 及板级工程尚未实现；双 MMU 与直映 write-through 数据 cache
 已接入 BRAM SoC 并通过 xsim 集成回归，cacheable BRAM 数据路径已有 RTL↔ISS
-differential；基础 Sv39/MMU 核心 differential 已覆盖，页故障和权限边界的 differential
-覆盖仍待完成。
+differential；基础 Sv39/MMU 核心 differential 已覆盖；execute-only 数据页的 S-mode
+load page fault 已有独立 Sv39 walker↔RTL 精确 trap differential，其他 fetch/store 与
+U/S/SUM 权限边界仍待扩展。
 任何综合、实现、下载和 flash 编程都必须先满足上板前确认门。

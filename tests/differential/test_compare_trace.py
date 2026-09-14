@@ -22,3 +22,10 @@ class TraceComparisonTest(unittest.TestCase):
     def test_length_mismatch_is_reported(self) -> None:
         with self.assertRaisesRegex(AssertionError, "length mismatch"):
             compare([self.commit], [])
+
+    def test_trap_fields_participate_in_comparison(self) -> None:
+        expected = TraceCommit(0x104, 0x1B203, 0x40, 4, None, 13, 0x2000, 3)
+        actual = TraceCommit(0x104, 0x1B203, 0x40, 4, None, 13, 0x2001, 3)
+
+        with self.assertRaisesRegex(AssertionError, "commit 0"):
+            compare([expected], [actual])

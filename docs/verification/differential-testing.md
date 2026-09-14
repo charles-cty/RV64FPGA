@@ -22,9 +22,9 @@
 ## 当前工具
 
 `tools/differential/compare_trace.py` 使用 UTF-8 JSON Lines 作为稳定的提交记录格式。
-每行包含 `pc`、`instruction`、`next_pc`、`rd` 和 `rd_value`；比较器在第一个不同提交
-或长度不一致处失败。该工具不导入 RTL 包或解码表，后续 CPU testbench 可直接导出同一
-格式接入门禁。
+每行必含 `pc`、`instruction`、`next_pc`、`rd` 和 `rd_value`；trap 场景还可包含
+`trap_cause`、`trap_value` 和提交后的 `privilege`。比较器在第一个不同提交或长度不一致处
+失败。该工具不导入 RTL 包或解码表，后续 CPU testbench 可直接导出同一格式接入门禁。
 
 `rv64_core` 当前是单周期顺序执行原型，先用于验证架构状态和 BRAM 事务；它不是最终
 的三级流水线实现。三级流水线将在该提交契约稳定后替换，避免将内部时序差异混入
@@ -42,8 +42,12 @@ read hit、分支和可见内存写入的程序，再将 RTL 提交 trace 与独
 Sv39 翻译、页故障或特权 CSR 的 differential 覆盖。
 
 `scripts/run-soc-mmu-diff.sh` 使用独立 PTE walker、最小 CSR/MRET 状态和同一程序的
-RTL trace 比较 M-mode 配置、进入 S-mode 后的 Sv39 取指及虚拟数据读写。页故障与权限
-拒绝路径仍由独立 MMU 回归覆盖，后续再扩大为完整 differential 场景。
+RTL trace 比较 M-mode 配置、进入 S-mode 后的 Sv39 取指及虚拟数据读写。
+
+`scripts/run-soc-mmu-fault-diff.sh` 以独立 Sv39 PTE walker 和 ISS 生成 execute-only
+数据页上的 S-mode `ld` fault trace，并逐条比较 M-mode 配置、`mret`、故障提交的
+`mepc`、load-page-fault cause、`mtval`、trap vector 与返回特权级。其他 fetch/store 和
+U/S/SUM 权限拒绝组合仍待纳入 differential。
 
 运行入口：
 

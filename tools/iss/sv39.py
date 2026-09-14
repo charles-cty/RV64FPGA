@@ -4,7 +4,13 @@ from __future__ import annotations
 
 
 class PageFault(ValueError):
-    pass
+    """Sv39 translation failure with the architectural access classification."""
+
+    def __init__(self, access: str, address: int, reason: str) -> None:
+        self.access = access
+        self.address = address
+        self.cause = {"fetch": 12, "load": 13, "store": 15}[access]
+        super().__init__(reason)
 
 
 class Sv39Reference:
@@ -32,7 +38,7 @@ class Sv39Reference:
         if privilege == 3 or (satp >> 60) == 0:
             return address
         if (satp >> 60) != 8 or not self._canonical(address):
-            raise PageFault(f"invalid Sv39 translation request at {address:#x}")
+            raise PageFault(access, address, f"invalid Sv39 translation request at {address:#x}")
 
         table_base = (satp & ((1 << 44) - 1)) << 12
         for level in range(2, -1, -1):
@@ -42,10 +48,10 @@ class Sv39Reference:
             accessed, dirty, user = tuple((entry >> bit) & 1 for bit in (6, 7, 4))
             ppn = (entry >> 10) & ((1 << 44) - 1)
             if not valid or (not readable and writable):
-                raise PageFault(f"invalid PTE at level {level}")
+                raise PageFault(access, address, f"invalid PTE at level {level}")
             if readable or executable:
                 if not accessed or (access == "store" and not dirty):
-                    raise PageFault(f"missing accessed or dirty PTE bit at level {level}")
+                    raise PageFault(access, address, f"missing accessed or dirty PTE bit at level {level}")
                 if privilege == 0:
                     privilege_ok = bool(user)
                 elif privilege == 1:
@@ -58,18 +64,18 @@ class Sv39Reference:
                     "store": bool(writable),
                 }.get(access, False)
                 if not privilege_ok or not access_ok:
-                    raise PageFault(f"permission denied at level {level}")
+                    raise PageFault(access, address, f"permission denied at level {level}")
                 if level == 2 and (ppn & ((1 << 18) - 1)):
-                    raise PageFault("misaligned 1 GiB leaf PTE")
+                    raise PageFault(access, address, "misaligned 1 GiB leaf PTE")
                 if level == 1 and (ppn & ((1 << 9) - 1)):
-                    raise PageFault("misaligned 2 MiB leaf PTE")
+                    raise PageFault(access, address, "misaligned 2 MiB leaf PTE")
                 if level == 2:
                     return ((ppn >> 18) << 30) | (address & ((1 << 30) - 1))
                 if level == 1:
                     return ((ppn >> 9) << 21) | (address & ((1 << 21) - 1))
                 return (ppn << 12) | (address & 0xFFF)
             if level == 0:
-                raise PageFault("non-leaf PTE at level zero")
+                raise PageFault(access, address, "non-leaf PTE at level zero")
             table_base = ppn << 12
 
-        raise PageFault("page table walk did not resolve")
+        raise PageFault(access, address, "page table walk did not resolve")

@@ -15,6 +15,9 @@ class TraceCommit:
     next_pc: int
     rd: int
     rd_value: int | None
+    trap_cause: int | None = None
+    trap_value: int | None = None
+    privilege: int | None = None
 
     @classmethod
     def from_json(cls, record: dict[str, object]) -> "TraceCommit":
@@ -28,6 +31,13 @@ class TraceCommit:
             next_pc=int(record["next_pc"], 0) if isinstance(record["next_pc"], str) else int(record["next_pc"]),
             rd=int(record["rd"]),
             rd_value=None if record["rd_value"] is None else (int(record["rd_value"], 0) if isinstance(record["rd_value"], str) else int(record["rd_value"])),
+            trap_cause=None if record.get("trap_cause") is None else (
+                int(record["trap_cause"], 0) if isinstance(record["trap_cause"], str) else int(record["trap_cause"])
+            ),
+            trap_value=None if record.get("trap_value") is None else (
+                int(record["trap_value"], 0) if isinstance(record["trap_value"], str) else int(record["trap_value"])
+            ),
+            privilege=None if record.get("privilege") is None else int(record["privilege"]),
         )
 
 

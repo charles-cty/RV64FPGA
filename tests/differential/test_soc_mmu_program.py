@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools" / "differential"))
 sys.path.insert(0, str(ROOT / "tools" / "iss"))
 
+from soc_mmu_fault_program import generate_trace as generate_fault_trace
 from soc_mmu_program import generate_trace, make_pte
 from sv39 import PageFault, Sv39Reference
 
@@ -27,8 +28,11 @@ class Sv39ReferenceTest(unittest.TestCase):
         self.assertEqual(self.memory.translate(0x2000, "store", 1, self.satp, False), 0x4000)
 
     def test_fetch_rejects_non_executable_data_page(self) -> None:
-        with self.assertRaises(PageFault):
+        with self.assertRaises(PageFault) as context:
             self.memory.translate(0x2000, "fetch", 1, self.satp, False)
+
+        self.assertEqual(context.exception.cause, 12)
+        self.assertEqual(context.exception.address, 0x2000)
 
 
 class SocMmuProgramTraceTest(unittest.TestCase):
@@ -40,6 +44,17 @@ class SocMmuProgramTraceTest(unittest.TestCase):
         self.assertEqual(trace[10]["pc"], "0x0000000000000100")
         self.assertEqual(trace[13]["rd_value"], "0x0000000000000002")
         self.assertEqual(trace[14]["next_pc"], "0x0000000000000110")
+
+    def test_execute_only_load_fault_trace_is_precise(self) -> None:
+        trace = generate_fault_trace()
+
+        self.assertEqual(len(trace), 14)
+        self.assertEqual(trace[-1]["pc"], "0x0000000000000104")
+        self.assertEqual(trace[-1]["instruction"], "0x0001b203")
+        self.assertEqual(trace[-1]["next_pc"], "0x0000000000000040")
+        self.assertEqual(trace[-1]["trap_cause"], "0x000000000000000d")
+        self.assertEqual(trace[-1]["trap_value"], "0x0000000000002000")
+        self.assertEqual(trace[-1]["privilege"], 3)
 
 
 if __name__ == "__main__":
