@@ -18,6 +18,19 @@
 - [Linux 启动与验收](docs/bringup/linux-acceptance.md)
 - [里程碑与交付物](docs/project/milestones.md)
 
+## 开发入口
+
+```bash
+uv run python -m unittest discover -s tests
+./scripts/run-xsim.sh alu
+```
+
+`run-xsim.sh` 只会调用 Vivado xsim：它把所需文件复制到 Windows 本地临时目录后执行
+`xvlog`、`xelab`、`xsim`，并检查日志中的 `SIM PASS`。它不会运行综合、实现、下载或
+flash 编程。
+
 ## 当前状态
 
-仓库已完成文档和 Git 初始化；尚未开始 RTL、仿真工程或 Vivado 综合。任何综合、实现、下载和 flash 编程都必须先满足上板前确认门。
+M0 工程骨架和首个 M1 增量已建立：RTL ALU、独立 Python ISS、ISS 单元测试和 xsim
+ALU 回归均已纳入版本控制。CPU 流水线、存储器、CSR/MMU、DDR3 及板级工程尚未实现。
+任何综合、实现、下载和 flash 编程都必须先满足上板前确认门。

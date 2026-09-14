@@ -18,3 +18,10 @@
 ## 判定
 
 只有逐条 trace 完全一致才算通过。允许 RTL 和 ISS 在未提交的内部时序上不同，但提交顺序、架构状态和可见内存事务必须一致。
+
+## 当前工具
+
+`tools/differential/compare_trace.py` 使用 UTF-8 JSON Lines 作为稳定的提交记录格式。
+每行包含 `pc`、`instruction`、`next_pc`、`rd` 和 `rd_value`；比较器在第一个不同提交
+或长度不一致处失败。该工具不导入 RTL 包或解码表，后续 CPU testbench 可直接导出同一
+格式接入门禁。

@@ -6,6 +6,10 @@
 
 WSL 脚本将 RTL、testbench、镜像复制到 Windows 本地临时目录。PowerShell 负责从 `VivadoBat` 参数通过 `Split-Path` 推导 `bin`，避免 WSL 反斜杠路径误解析。
 
+仓库的 `scripts/run-xsim.ps1` 是 xsim 驱动，`scripts/run-xsim.sh` 负责从 WSL 调用它。
+驱动会把 RTL 和 testbench 复制到 Windows 本地临时目录，运行 `xvlog`、`xelab`、`xsim`，
+然后将 `sim.log` 回传到 `build/xsim/<test>/`；它不会调用综合或实现流程。
+
 ## 标准步骤
 
 ```text
@@ -22,3 +26,9 @@ xsim --nolog --runall --log sim.log tb_snap
 - 初始化 128 位 bundle 时，slot 0 放在最低 32 位。
 - 长消息 task 使用至少 512 位输入。
 - 每个测试设置 timeout、seed、版本和期望结果。
+
+当前 ALU 回归：
+
+```bash
+./scripts/run-xsim.sh alu
+```

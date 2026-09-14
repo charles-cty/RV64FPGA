@@ -20,6 +20,9 @@ vivado*.backup.*
 build/
 out/
 sim/out/
+.venv/
+__pycache__/
+*.py[cod]
 *.elf
 *.hex
 *.mem
