@@ -50,6 +50,12 @@ request, delays completion, preserves byte strobes, and reports an error while
 read-after-write, byte strobe, unavailable, and pending-reset behavior. It is
 not a MIG model and cannot be used as DDR3 hardware evidence.
 
+`rv64_bram_soc` can select this endpoint with `USE_DDR3_MODEL=1`; the
+`soc_ddr3_model` xsim regression proves a cache write-through followed by a
+delayed read miss and a read hit. The current SoC selection fixes calibration
+to ready and does not yet expose `response_error` to the core, so calibration
+error handling remains an adapter/M-mode boot-policy task.
+
 Before hardware work, xsim must connect this endpoint or a protocol-equivalent
 behavioral model to the future adapter. Required integration regressions are:
 

@@ -1,5 +1,7 @@
 module rv64_bram_soc #(
-  parameter integer UART_BIT_CYCLES = 434
+  parameter integer UART_BIT_CYCLES = 434,
+  parameter logic USE_DDR3_MODEL = 1'b0,
+  parameter integer DDR3_MODEL_RESPONSE_DELAY = 2
 ) (
   input  logic        clk,
   input  logic        reset,
@@ -94,6 +96,9 @@ module rv64_bram_soc #(
   logic [63:0] data_cache_memory_address;
   logic [63:0] data_cache_memory_write_data;
   logic [7:0] data_cache_memory_write_strobe;
+  logic ddr3_model_ready;
+  logic [63:0] ddr3_model_read_data;
+  logic ddr3_model_error;
   logic data_pte_request;
   logic [63:0] data_pte_address;
   logic [63:0] data_pte_read_data;
@@ -213,6 +218,20 @@ module rv64_bram_soc #(
     .busy()
   );
 
+  rv64_ddr3_model #(.RESPONSE_DELAY(DDR3_MODEL_RESPONSE_DELAY)) ddr3_model (
+    .clk(clk),
+    .reset(reset),
+    .calibrated(1'b1),
+    .request_valid(USE_DDR3_MODEL && data_cache_memory_valid),
+    .request_write(data_cache_memory_write),
+    .request_address(data_cache_memory_address),
+    .request_write_data(data_cache_memory_write_data),
+    .request_write_strobe(data_cache_memory_write_strobe),
+    .request_ready(ddr3_model_ready),
+    .response_read_data(ddr3_model_read_data),
+    .response_error(ddr3_model_error)
+  );
+
   rv64_cache #(.LINE_COUNT(4)) data_cache (
     .clk(clk),
     .reset(reset),
@@ -225,12 +244,13 @@ module rv64_bram_soc #(
     .response_valid(data_cache_response_valid),
     .response_read_data(data_cache_response_data),
     .memory_valid(data_cache_memory_valid),
-    .memory_ready(1'b1),
+    .memory_ready(USE_DDR3_MODEL ? ddr3_model_ready : 1'b1),
     .memory_write(data_cache_memory_write),
     .memory_address(data_cache_memory_address),
     .memory_write_data(data_cache_memory_write_data),
     .memory_write_strobe(data_cache_memory_write_strobe),
-    .memory_read_data(data_memory[data_cache_memory_address[15:3]])
+    .memory_read_data(USE_DDR3_MODEL ? ddr3_model_read_data :
+                      data_memory[data_cache_memory_address[15:3]])
   );
 
   always_comb begin
