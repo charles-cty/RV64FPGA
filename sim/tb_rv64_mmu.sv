@@ -15,6 +15,9 @@ module tb_rv64_mmu;
   logic [63:0] pte_address;
   logic [63:0] pte_read_data;
   logic pte_ready;
+  logic sfence_valid;
+  logic sfence_all;
+  logic [63:0] sfence_virtual_address;
   logic translation_done;
   logic translation_fault;
   logic [63:0] physical_address;
@@ -111,6 +114,17 @@ module tb_rv64_mmu;
     end
   endtask
 
+  task automatic sfence(input logic invalidate_all, input logic [63:0] address);
+    begin
+      sfence_all = invalidate_all;
+      sfence_virtual_address = address;
+      sfence_valid = 1'b1;
+      @(posedge clk);
+      #1;
+      sfence_valid = 1'b0;
+    end
+  endtask
+
   always_comb begin
     pte_ready = 1'b0;
     pte_read_data = '0;
@@ -129,6 +143,9 @@ module tb_rv64_mmu;
     privilege = 2'b01;
     sum_enable = 1'b0;
     satp = '0;
+    sfence_valid = 1'b0;
+    sfence_all = 1'b0;
+    sfence_virtual_address = '0;
     failures = 0;
 
     for (integer table_index = 0; table_index < 65536; table_index = table_index + 1) begin
@@ -151,14 +168,24 @@ module tb_rv64_mmu;
 
     translate("bare direct", 64'h0000_0000_4000_1234, MMU_LOAD, 2'b01, 1'b0,
               64'd0, 1'b0, 64'h0000_0000_4000_1234);
+    translate("reserved satp mode", 64'h0000_0000_4000_1234, MMU_LOAD, 2'b01, 1'b0,
+              64'h1000_0000_0000_0001, 1'b1, '0);
     translate("M-mode satp bypass", 64'h0000_0000_4000_5678, MMU_LOAD, 2'b11, 1'b0,
               64'h8000_0000_0000_0001, 1'b0, 64'h0000_0000_4000_5678);
     translate("4K load", VA_4K, MMU_LOAD, 2'b01, 1'b0,
               64'h8000_0000_0000_0001, 1'b0, 64'h0000_0000_1234_5678);
     translate("4K store", VA_4K, MMU_STORE, 2'b01, 1'b0,
               64'h8000_0000_0000_0001, 1'b0, 64'h0000_0000_1234_5678);
+    page_table[pte_slot(L0_4K, VA_4K, 0)[18:3]] = '0;
+    translate("4K cached hit", VA_4K, MMU_LOAD, 2'b01, 1'b0,
+              64'h8000_0000_0000_0001, 1'b0, 64'h0000_0000_1234_5678);
+    sfence(1'b0, VA_4K);
+    translate("4K sfence address", VA_4K, MMU_LOAD, 2'b01, 1'b0,
+              64'h8000_0000_0000_0001, 1'b1, '0);
+    set_pte(L0_4K, VA_4K, 0, 44'h12345, 8'hc7);
     translate("2M superpage", VA_2M, MMU_LOAD, 2'b01, 1'b0,
               64'h8000_0000_0000_0004, 1'b0, 64'h0000_0000_0045_6789);
+    sfence(1'b0, VA_2M);
     set_pte(L1_2M, VA_2M, 1, 44'h00401, 8'hc7);
     translate("misaligned 2M", VA_2M, MMU_LOAD, 2'b01, 1'b0,
               64'h8000_0000_0000_0004, 1'b1, '0);
@@ -187,8 +214,13 @@ module tb_rv64_mmu;
               64'h8000_0000_0000_0001, 1'b1, '0);
     translate("U load U page", VA_4K, MMU_LOAD, 2'b00, 1'b0,
               64'h8000_0000_0000_0001, 1'b0, 64'h0000_0000_1234_5678);
+    sfence(1'b0, VA_4K);
     set_pte(L0_4K, VA_4K, 0, 44'h12345, 8'hc7);
     translate("U load supervisor page", VA_4K, MMU_LOAD, 2'b00, 1'b0,
+              64'h8000_0000_0000_0001, 1'b1, '0);
+    sfence(1'b1, '0);
+    page_table[pte_slot(L0_4K, VA_4K, 0)[18:3]] = '0;
+    translate("4K sfence all", VA_4K, MMU_LOAD, 2'b01, 1'b0,
               64'h8000_0000_0000_0001, 1'b1, '0);
 
     if (failures != 0) begin

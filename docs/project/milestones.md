@@ -14,5 +14,5 @@
 
 每个里程碑交付 RTL、testbench、ISS/differential 结果、覆盖率、脚本、波形/日志和已知限制。
 
-当前 M4 已有独立 `rv64_mmu` Sv39 walker 及 xsim 回归，但页表刷新、TLB/cache、核心接入
-和 differential 覆盖仍未完成，因此尚未满足 M4 退出条件。
+当前 M4 已有独立 `rv64_mmu` Sv39 walker、小型 TLB 及 xsim 回归；cache、核心接入和
+differential 覆盖仍未完成，因此尚未满足 M4 退出条件。

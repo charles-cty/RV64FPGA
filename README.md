@@ -39,6 +39,6 @@ M0 工程骨架和 M1/M2/M3/M5 基础增量已建立：RTL ALU、译码、寄存
 CPU+BRAM 原型、独立 Python ISS、trace 比较器、CSR 单元以及已接入核心的原子访存路径
 均已纳入版本控制，CLINT/PLIC/UART 已独立完成 xsim 回归，UART/LED 和 CLINT/PLIC
 MMIO 已接入 BRAM SoC，timer trap 已通过 xsim。三级流水线、完整异常/delegation、
-PLIC 外部源接线、TLB/cache、MMU 核心接入、DDR3 及板级工程尚未实现；独立 Sv39 walker
-已完成 xsim 回归，作为 M4 的前置验证。
+PLIC 外部源接线、cache、MMU 核心接入、DDR3 及板级工程尚未实现；独立 Sv39 walker
+和小型 TLB 已完成 xsim 回归，作为 M4 的前置验证。
 任何综合、实现、下载和 flash 编程都必须先满足上板前确认门。
