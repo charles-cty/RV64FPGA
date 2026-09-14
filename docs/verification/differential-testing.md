@@ -48,8 +48,11 @@ RTL trace 比较 M-mode 配置、进入 S-mode 后的 Sv39 取指及虚拟数据
 `scripts/run-soc-mmu-fault-diff.sh` 以独立 Sv39 PTE walker 和 ISS 生成无效 S-mode
 取指页，以及 execute-only 数据页上的 S-mode `ld`/`sd` fault trace，并逐条比较 M-mode
 配置、`mret`、故障提交的 `mepc`、fetch/load/store-page-fault cause、`mtval`、trap vector
-与返回特权级，同时确认 store 没有可见内存副作用。U/S/SUM 权限拒绝组合仍待纳入
-differential。
+与返回特权级，同时确认 store 没有可见内存副作用。
+
+`scripts/run-soc-mmu-sum-diff.sh` 使用 supervisor-only 代码页和 user R/W 数据页：先
+比较 `SUM=0` 的 load page fault，再比较 `SUM=1` 对同一地址的成功 load 和返回值。U-mode
+以及 S-mode 对 U 页的 fetch 权限组合仍待纳入 differential。
 
 运行入口：
 

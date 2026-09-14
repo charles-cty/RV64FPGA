@@ -10,6 +10,7 @@ sys.path.insert(0, str(ROOT / "tools" / "iss"))
 
 from soc_mmu_fault_program import generate_fetch_trace, generate_load_trace, generate_store_trace
 from soc_mmu_program import generate_trace, make_pte
+from soc_mmu_sum_program import DATA_VALUE, generate_sum_off_trace, generate_sum_on_trace
 from sv39 import PageFault, Sv39Reference
 
 
@@ -79,6 +80,21 @@ class SocMmuProgramTraceTest(unittest.TestCase):
         self.assertEqual(trace[-1]["trap_cause"], "0x000000000000000c")
         self.assertEqual(trace[-1]["trap_value"], "0x0000000000002000")
         self.assertEqual(trace[-1]["privilege"], 3)
+
+    def test_sum_controls_supervisor_loads_from_user_pages(self) -> None:
+        sum_off_trace = generate_sum_off_trace()
+        sum_on_trace = generate_sum_on_trace()
+
+        self.assertEqual(len(sum_off_trace), 14)
+        self.assertEqual(sum_off_trace[-1]["pc"], "0x0000000000000104")
+        self.assertEqual(sum_off_trace[-1]["trap_cause"], "0x000000000000000d")
+        self.assertEqual(sum_off_trace[-1]["trap_value"], "0x0000000000002000")
+        self.assertEqual(sum_off_trace[-1]["privilege"], 3)
+        self.assertEqual(len(sum_on_trace), 14)
+        self.assertEqual(sum_on_trace[-1]["pc"], "0x0000000000000104")
+        self.assertEqual(sum_on_trace[-1]["rd_value"], f"0x{DATA_VALUE:016x}")
+        self.assertIsNone(sum_on_trace[-1]["trap_cause"])
+        self.assertEqual(sum_on_trace[-1]["privilege"], 1)
 
 
 if __name__ == "__main__":

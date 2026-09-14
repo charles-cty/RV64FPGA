@@ -72,6 +72,10 @@ interrupt 边界。
 数据页的 fetch/load/store 故障提交，以及普通提交的 `trap_cause`、`trap_value` 和提交后的
 privilege。
 
+`./scripts/run-xsim.sh soc_mmu_sum_diff` 导出 S-mode 对 U 页的 `SUM=0/1` load trace；
+`./scripts/run-soc-mmu-sum-diff.sh` 使用独立 Sv39 walker/ISS 比较拒绝时的精确 trap 与
+允许时的加载值。
+
 `./scripts/run-xsim.sh soc_mmu_diff` 导出基础 Sv39 SoC 的 RTL 提交 trace；
 `./scripts/run-soc-mmu-diff.sh` 以独立 PTE walker 和 ISS 生成并比较 15 条提交。
 
