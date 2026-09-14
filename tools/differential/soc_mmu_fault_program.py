@@ -1,4 +1,4 @@
-"""Generate an independent Sv39 execute-only load-fault SoC commit trace."""
+"""Generate independent Sv39 execute-only load/store fault SoC commit traces."""
 
 from __future__ import annotations
 
@@ -28,9 +28,14 @@ MACHINE_PROGRAM = {
     0x028: 0x34109073,
     0x02C: 0x30200073,
 }
-SUPERVISOR_PROGRAM = {
+LOAD_SUPERVISOR_PROGRAM = {
     0x100: 0x000021B7,
     0x104: 0x0001B203,
+}
+STORE_SUPERVISOR_PROGRAM = {
+    0x100: 0x02A00113,
+    0x104: 0x000021B7,
+    0x108: 0x0021B023,
 }
 
 
@@ -47,7 +52,7 @@ def format_commit(commit: Commit, privilege: int) -> dict[str, int | str | None]
     }
 
 
-def generate_trace() -> list[dict[str, int | str | None]]:
+def generate_fault_trace(supervisor_program: dict[int, int]) -> list[dict[str, int | str | None]]:
     physical_memory = Sv39Reference()
     physical_memory.write_u64(0x1000, make_pte(2, 0x01))
     physical_memory.write_u64(0x2000, make_pte(3, 0x01))
@@ -61,7 +66,7 @@ def generate_trace() -> list[dict[str, int | str | None]]:
             instruction = MACHINE_PROGRAM[iss.pc]
         else:
             iss._physical_address(iss.pc, "fetch")
-            instruction = SUPERVISOR_PROGRAM[iss.pc]
+            instruction = supervisor_program[iss.pc]
         try:
             commit = iss.step(instruction)
         except PageFault as fault:
@@ -81,6 +86,18 @@ def generate_trace() -> list[dict[str, int | str | None]]:
         trace.append(format_commit(commit, iss.privilege))
 
     return trace
+
+
+def generate_load_trace() -> list[dict[str, int | str | None]]:
+    return generate_fault_trace(LOAD_SUPERVISOR_PROGRAM)
+
+
+def generate_store_trace() -> list[dict[str, int | str | None]]:
+    return generate_fault_trace(STORE_SUPERVISOR_PROGRAM)
+
+
+def generate_trace() -> list[dict[str, int | str | None]]:
+    return generate_load_trace() + generate_store_trace()
 
 
 def main() -> int:

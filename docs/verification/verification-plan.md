@@ -27,9 +27,9 @@ CI 顺序为 lint → 单元 xsim → SoC xsim → ISS differential → 覆盖�
 当前独立 MMU 回归已覆盖 4 KiB、2 MiB、1 GiB 页、权限/特权级、SUM、A/D、规范地址、
 无效 PTE，以及小型 TLB 命中和按地址 `SFENCE.VMA`。直映 write-through 数据 cache
 已验证读 hit/miss、写 hit/miss、字节掩码和冲突替换，并接入 SoC。基础 cache 与 Sv39
-核心 differential 已通过；SoC execute-only 数据页的 load page fault 已以独立 Sv39
-walker/ISS 逐条比较精确 CSR trap 状态。fetch/store 及 U/S/SUM 权限拒绝的 differential
-测试仍待补齐。
+核心 differential 已通过；SoC execute-only 数据页的 load/store page fault 已以独立 Sv39
+walker/ISS 逐条比较精确 CSR trap 状态与 store 无内存副作用。fetch 及 U/S/SUM 权限拒绝的
+differential 测试仍待补齐。
 
 `core_alignment` xsim 回归覆盖未对齐的 `lw`、`sw`、`lr.w` 和 `amoadd.w`。它还使未对齐
 load 与同时到达的 `data_fault` 相遇，以确认 load-address-misaligned 的优先级，并检查

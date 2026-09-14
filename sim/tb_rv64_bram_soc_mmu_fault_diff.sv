@@ -31,6 +31,16 @@ module tb_rv64_bram_soc_mmu_fault_diff;
     encode_u = {immediate, destination_register, 7'b0110111};
   endfunction
 
+  function automatic logic [31:0] encode_s(
+    input logic [11:0] immediate,
+    input logic [4:0] source_register,
+    input logic [4:0] data_register,
+    input logic [2:0] function_code
+  );
+    encode_s = {immediate[11:5], data_register, source_register, function_code,
+                immediate[4:0], 7'b0100011};
+  endfunction
+
   function automatic logic [63:0] make_pte(
     input logic [43:0] ppn,
     input logic [7:0] flags
@@ -120,6 +130,35 @@ module tb_rv64_bram_soc_mmu_fault_diff;
       $display("FAIL Sv39 fault trace final state commits=%0d privilege=%b mcause=%h mtval=%h mepc=%h x4=%h",
                commit_count, dut.core.privilege_mode, dut.core.csr_file.mcause,
                dut.core.csr_file.mtval, dut.core.csr_file.mepc, dut.core.register_file.registers[4]);
+      failures = failures + 1;
+    end
+
+    @(negedge clk);
+    reset = 1'b1;
+    dut.instruction_memory[64] = encode_i(12'd42, 5'd0, 3'b000, 5'd2, 7'b0010011);
+    dut.instruction_memory[65] = encode_u(20'd2, 5'd3);
+    dut.instruction_memory[66] = encode_s(12'd0, 5'd3, 5'd2, 3'b011);
+    dut.data_memory[2048] = '0;
+    @(posedge clk);
+    #1;
+    reset = 1'b0;
+
+    for (cycle_count = 0; cycle_count < 240 && commit_count < 29;
+         cycle_count = cycle_count + 1) begin
+      @(posedge clk);
+      #1;
+      if (dut.core.commit_valid) begin
+        write_trace();
+        commit_count = commit_count + 1;
+      end
+    end
+
+    if (commit_count != 29 || dut.core.privilege_mode !== 2'b11 ||
+        dut.core.csr_file.mcause !== 64'd15 || dut.core.csr_file.mtval !== 64'h2000 ||
+        dut.core.csr_file.mepc !== 64'h108 || dut.data_memory[2048] !== 64'b0) begin
+      $display("FAIL Sv39 store fault trace final state commits=%0d privilege=%b mcause=%h mtval=%h mepc=%h memory=%h",
+               commit_count, dut.core.privilege_mode, dut.core.csr_file.mcause,
+               dut.core.csr_file.mtval, dut.core.csr_file.mepc, dut.data_memory[2048]);
       failures = failures + 1;
     end
 

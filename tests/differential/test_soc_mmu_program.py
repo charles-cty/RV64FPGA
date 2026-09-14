@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools" / "differential"))
 sys.path.insert(0, str(ROOT / "tools" / "iss"))
 
-from soc_mmu_fault_program import generate_trace as generate_fault_trace
+from soc_mmu_fault_program import generate_load_trace, generate_store_trace
 from soc_mmu_program import generate_trace, make_pte
 from sv39 import PageFault, Sv39Reference
 
@@ -46,13 +46,25 @@ class SocMmuProgramTraceTest(unittest.TestCase):
         self.assertEqual(trace[14]["next_pc"], "0x0000000000000110")
 
     def test_execute_only_load_fault_trace_is_precise(self) -> None:
-        trace = generate_fault_trace()
+        trace = generate_load_trace()
 
         self.assertEqual(len(trace), 14)
         self.assertEqual(trace[-1]["pc"], "0x0000000000000104")
         self.assertEqual(trace[-1]["instruction"], "0x0001b203")
         self.assertEqual(trace[-1]["next_pc"], "0x0000000000000040")
         self.assertEqual(trace[-1]["trap_cause"], "0x000000000000000d")
+        self.assertEqual(trace[-1]["trap_value"], "0x0000000000002000")
+        self.assertEqual(trace[-1]["privilege"], 3)
+
+    def test_execute_only_store_fault_trace_has_no_writeback(self) -> None:
+        trace = generate_store_trace()
+
+        self.assertEqual(len(trace), 15)
+        self.assertEqual(trace[-1]["pc"], "0x0000000000000108")
+        self.assertEqual(trace[-1]["instruction"], "0x0021b023")
+        self.assertEqual(trace[-1]["next_pc"], "0x0000000000000040")
+        self.assertEqual(trace[-1]["rd_value"], None)
+        self.assertEqual(trace[-1]["trap_cause"], "0x000000000000000f")
         self.assertEqual(trace[-1]["trap_value"], "0x0000000000002000")
         self.assertEqual(trace[-1]["privilege"], 3)
 
