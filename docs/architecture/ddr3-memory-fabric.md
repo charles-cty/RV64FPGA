@@ -73,6 +73,14 @@ not include the `clk_50`/`ui_clk` asynchronous bridge or instantiate MIG.
 `ddr3_axi_adapter` xsim verifies delayed independent AW/W/AR handshakes, lane
 placement, response errors, range rejection, and reset during a transaction.
 
+`rtl/rv64_async_memory_bridge.sv` carries this same one-request contract from
+`clk_50` to the future `ui_clk`. It uses request and response toggle mailboxes
+with two-flop synchronization; each mailbox payload remains stable until its
+receiving domain acknowledges completion. Both resets must assert together to
+abort an outstanding transaction. `async_memory_bridge` xsim uses unrelated
+clock periods and verifies mailbox field stability, response-error propagation,
+backpressure, and reset cancellation without a duplicate response.
+
 Before hardware work, xsim must connect this endpoint or a protocol-equivalent
 behavioral model to the future adapter. Required integration regressions are:
 

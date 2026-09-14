@@ -91,6 +91,9 @@ fault。
 8-byte cache transaction 映射为一个对齐的 512-bit AXI beat，并检查读写 lane、AXI
 错误和 pending reset。它不调用 MIG 或综合。
 
+`./scripts/run-xsim.sh async_memory_bridge` 验证 CPU 与 DDR3 UI 域之间的异步
+single-request mailbox，不同的时钟频率、反压、error 和共同 reset 都由该回归覆盖。
+
 `./scripts/run-xsim.sh soc_cache_diff` 导出 cacheable BRAM SoC 的 RTL 提交 trace；
 `./scripts/run-soc-cache-diff.sh` 再以独立 ISS 生成并比较完整期望 trace。
 

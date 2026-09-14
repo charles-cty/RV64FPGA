@@ -42,6 +42,9 @@ S-mode 对 U 页取指拒绝已覆盖。随机化和 cache/TLB 交互 differenti
 MIG AXI beat 的地址、lane、写掩码、response error 和 reset 行为；它不包含 CDC 或
 厂商 MIG IP。
 
+`async_memory_bridge` xsim 在非整比 CPU/UI 时钟下验证 one-request CDC mailbox、
+backpressure、response error 和共同异步 reset 中止行为。
+
 `soc_ddr3_model` xsim 回归将该 endpoint 接入 cache 外部内存端口，验证 write-through、
 延迟 read miss 和后续 cache hit 的架构结果。
 
