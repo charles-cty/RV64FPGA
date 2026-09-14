@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools" / "differential"))
 sys.path.insert(0, str(ROOT / "tools" / "iss"))
 
-from soc_mmu_fault_program import generate_load_trace, generate_store_trace
+from soc_mmu_fault_program import generate_fetch_trace, generate_load_trace, generate_store_trace
 from soc_mmu_program import generate_trace, make_pte
 from sv39 import PageFault, Sv39Reference
 
@@ -65,6 +65,18 @@ class SocMmuProgramTraceTest(unittest.TestCase):
         self.assertEqual(trace[-1]["next_pc"], "0x0000000000000040")
         self.assertEqual(trace[-1]["rd_value"], None)
         self.assertEqual(trace[-1]["trap_cause"], "0x000000000000000f")
+        self.assertEqual(trace[-1]["trap_value"], "0x0000000000002000")
+        self.assertEqual(trace[-1]["privilege"], 3)
+
+    def test_invalid_supervisor_fetch_fault_has_no_instruction(self) -> None:
+        trace = generate_fetch_trace()
+
+        self.assertEqual(len(trace), 13)
+        self.assertEqual(trace[-1]["pc"], "0x0000000000002000")
+        self.assertIsNone(trace[-1]["instruction"])
+        self.assertEqual(trace[-1]["next_pc"], "0x0000000000000040")
+        self.assertEqual(trace[-1]["rd"], 0)
+        self.assertEqual(trace[-1]["trap_cause"], "0x000000000000000c")
         self.assertEqual(trace[-1]["trap_value"], "0x0000000000002000")
         self.assertEqual(trace[-1]["privilege"], 3)
 

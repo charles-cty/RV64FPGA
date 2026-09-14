@@ -68,8 +68,9 @@ interrupt 边界。
 精确 load page fault，并保存 `mepc`、`mcause`、`mtval` 和 MPP 后跳转至 M-mode handler。
 
 `./scripts/run-xsim.sh soc_mmu_fault_diff` 导出上述 fault 场景的扩展提交 trace；
-`./scripts/run-soc-mmu-fault-diff.sh` 以独立 Sv39 walker/ISS 比较普通提交及故障提交的
-`trap_cause`、`trap_value` 和提交后的 privilege。
+`./scripts/run-soc-mmu-fault-diff.sh` 以独立 Sv39 walker/ISS 比较无效取指页、execute-only
+数据页的 fetch/load/store 故障提交，以及普通提交的 `trap_cause`、`trap_value` 和提交后的
+privilege。
 
 `./scripts/run-xsim.sh soc_mmu_diff` 导出基础 Sv39 SoC 的 RTL 提交 trace；
 `./scripts/run-soc-mmu-diff.sh` 以独立 PTE walker 和 ISS 生成并比较 15 条提交。

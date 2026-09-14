@@ -11,7 +11,7 @@ from pathlib import Path
 @dataclass(frozen=True)
 class TraceCommit:
     pc: int
-    instruction: int
+    instruction: int | None
     next_pc: int
     rd: int
     rd_value: int | None
@@ -27,7 +27,9 @@ class TraceCommit:
             raise ValueError(f"trace record is missing fields: {', '.join(missing)}")
         return cls(
             pc=int(record["pc"], 0) if isinstance(record["pc"], str) else int(record["pc"]),
-            instruction=int(record["instruction"], 0) if isinstance(record["instruction"], str) else int(record["instruction"]),
+            instruction=None if record["instruction"] is None else (
+                int(record["instruction"], 0) if isinstance(record["instruction"], str) else int(record["instruction"])
+            ),
             next_pc=int(record["next_pc"], 0) if isinstance(record["next_pc"], str) else int(record["next_pc"]),
             rd=int(record["rd"]),
             rd_value=None if record["rd_value"] is None else (int(record["rd_value"], 0) if isinstance(record["rd_value"], str) else int(record["rd_value"])),

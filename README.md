@@ -45,6 +45,6 @@ MMIO 已接入 BRAM SoC，timer trap 已通过 xsim。三级流水线、完整�
 PLIC 外部源接线、DDR3 及板级工程尚未实现；双 MMU 与直映 write-through 数据 cache
 已接入 BRAM SoC 并通过 xsim 集成回归，cacheable BRAM 数据路径已有 RTL↔ISS
 differential；基础 Sv39/MMU 核心 differential 已覆盖；execute-only 数据页的 S-mode
-load/store page fault 已有独立 Sv39 walker↔RTL 精确 trap differential，其他 fetch 与
-U/S/SUM 权限边界仍待扩展。
+fetch/load/store page fault 已有独立 Sv39 walker↔RTL 精确 trap differential，U/S/SUM
+权限边界仍待扩展。
 任何综合、实现、下载和 flash 编程都必须先满足上板前确认门。

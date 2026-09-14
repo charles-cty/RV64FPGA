@@ -1,4 +1,4 @@
-"""Generate independent Sv39 execute-only load/store fault SoC commit traces."""
+"""Generate independent Sv39 execute-only fetch/load/store fault traces."""
 
 from __future__ import annotations
 
@@ -37,6 +37,7 @@ STORE_SUPERVISOR_PROGRAM = {
     0x104: 0x000021B7,
     0x108: 0x0021B023,
 }
+FETCH_MACHINE_PROGRAM = MACHINE_PROGRAM | {0x024: 0x000020B7}
 
 
 def format_commit(commit: Commit, privilege: int) -> dict[str, int | str | None]:
@@ -52,30 +53,35 @@ def format_commit(commit: Commit, privilege: int) -> dict[str, int | str | None]
     }
 
 
-def generate_fault_trace(supervisor_program: dict[int, int]) -> list[dict[str, int | str | None]]:
+def generate_fault_trace(
+    supervisor_program: dict[int, int],
+    machine_program: dict[int, int] = MACHINE_PROGRAM,
+    fault_page_flags: int = 0xC9,
+) -> list[dict[str, int | str | None]]:
     physical_memory = Sv39Reference()
     physical_memory.write_u64(0x1000, make_pte(2, 0x01))
     physical_memory.write_u64(0x2000, make_pte(3, 0x01))
     physical_memory.write_u64(0x3000, make_pte(0, 0x49))
-    physical_memory.write_u64(0x3010, make_pte(4, 0xC9))
+    physical_memory.write_u64(0x3010, make_pte(4, fault_page_flags))
     iss = Sv39SoCISS(physical_memory)
     trace: list[dict[str, int | str | None]] = []
 
     while True:
-        if iss.privilege == 3:
-            instruction = MACHINE_PROGRAM[iss.pc]
-        else:
-            iss._physical_address(iss.pc, "fetch")
-            instruction = supervisor_program[iss.pc]
+        instruction: int | None = None
         try:
+            if iss.privilege == 3:
+                instruction = machine_program[iss.pc]
+            else:
+                iss._physical_address(iss.pc, "fetch")
+                instruction = supervisor_program[iss.pc]
             commit = iss.step(instruction)
         except PageFault as fault:
             trace.append(
                 {
                     "pc": f"0x{iss.pc:016x}",
-                    "instruction": f"0x{instruction:08x}",
+                    "instruction": None if instruction is None else f"0x{instruction:08x}",
                     "next_pc": "0x0000000000000040",
-                    "rd": (instruction >> 7) & 0x1F,
+                    "rd": 0 if instruction is None else (instruction >> 7) & 0x1F,
                     "rd_value": None,
                     "trap_cause": f"0x{fault.cause:016x}",
                     "trap_value": f"0x{fault.address:016x}",
@@ -96,8 +102,12 @@ def generate_store_trace() -> list[dict[str, int | str | None]]:
     return generate_fault_trace(STORE_SUPERVISOR_PROGRAM)
 
 
+def generate_fetch_trace() -> list[dict[str, int | str | None]]:
+    return generate_fault_trace({}, FETCH_MACHINE_PROGRAM, 0)
+
+
 def generate_trace() -> list[dict[str, int | str | None]]:
-    return generate_load_trace() + generate_store_trace()
+    return generate_load_trace() + generate_store_trace() + generate_fetch_trace()
 
 
 def main() -> int:

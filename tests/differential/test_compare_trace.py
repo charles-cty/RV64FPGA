@@ -29,3 +29,8 @@ class TraceComparisonTest(unittest.TestCase):
 
         with self.assertRaisesRegex(AssertionError, "commit 0"):
             compare([expected], [actual])
+
+    def test_instruction_fetch_fault_can_omit_instruction(self) -> None:
+        fetch_fault = TraceCommit(0x2000, None, 0x40, 0, None, 12, 0x2000, 3)
+
+        compare([fetch_fault], [fetch_fault])

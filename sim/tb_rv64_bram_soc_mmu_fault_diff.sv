@@ -51,11 +51,18 @@ module tb_rv64_bram_soc_mmu_fault_diff;
   task automatic write_trace;
     begin
       if (dut.core.commit_trap_valid) begin
-        $fdisplay(trace_file,
-                  "{\"pc\":\"0x%016h\",\"instruction\":\"0x%08h\",\"next_pc\":\"0x%016h\",\"rd\":%0d,\"rd_value\":null,\"trap_cause\":\"0x%016h\",\"trap_value\":\"0x%016h\",\"privilege\":%0d}",
-                  dut.core.commit_pc, dut.core.commit_instruction, dut.core.commit_next_pc,
-                  dut.core.commit_rd, dut.core.commit_trap_cause, dut.core.csr_file.mtval,
-                  dut.core.privilege_mode);
+        if (dut.core.commit_trap_cause == 64'd12) begin
+          $fdisplay(trace_file,
+                    "{\"pc\":\"0x%016h\",\"instruction\":null,\"next_pc\":\"0x%016h\",\"rd\":0,\"rd_value\":null,\"trap_cause\":\"0x%016h\",\"trap_value\":\"0x%016h\",\"privilege\":%0d}",
+                    dut.core.commit_pc, dut.core.commit_next_pc, dut.core.commit_trap_cause,
+                    dut.core.csr_file.mtval, dut.core.privilege_mode);
+        end else begin
+          $fdisplay(trace_file,
+                    "{\"pc\":\"0x%016h\",\"instruction\":\"0x%08h\",\"next_pc\":\"0x%016h\",\"rd\":%0d,\"rd_value\":null,\"trap_cause\":\"0x%016h\",\"trap_value\":\"0x%016h\",\"privilege\":%0d}",
+                    dut.core.commit_pc, dut.core.commit_instruction, dut.core.commit_next_pc,
+                    dut.core.commit_rd, dut.core.commit_trap_cause, dut.core.csr_file.mtval,
+                    dut.core.privilege_mode);
+        end
       end else if (dut.core.commit_rd_write) begin
         $fdisplay(trace_file,
                   "{\"pc\":\"0x%016h\",\"instruction\":\"0x%08h\",\"next_pc\":\"0x%016h\",\"rd\":%0d,\"rd_value\":\"0x%016h\",\"trap_cause\":null,\"trap_value\":null,\"privilege\":%0d}",
@@ -159,6 +166,33 @@ module tb_rv64_bram_soc_mmu_fault_diff;
       $display("FAIL Sv39 store fault trace final state commits=%0d privilege=%b mcause=%h mtval=%h mepc=%h memory=%h",
                commit_count, dut.core.privilege_mode, dut.core.csr_file.mcause,
                dut.core.csr_file.mtval, dut.core.csr_file.mepc, dut.data_memory[2048]);
+      failures = failures + 1;
+    end
+
+    @(negedge clk);
+    reset = 1'b1;
+    dut.instruction_memory[9] = encode_u(20'd2, 5'd1);
+    dut.data_memory[1538] = '0;
+    @(posedge clk);
+    #1;
+    reset = 1'b0;
+
+    for (cycle_count = 0; cycle_count < 240 && commit_count < 42;
+         cycle_count = cycle_count + 1) begin
+      @(posedge clk);
+      #1;
+      if (dut.core.commit_valid) begin
+        write_trace();
+        commit_count = commit_count + 1;
+      end
+    end
+
+    if (commit_count != 42 || dut.core.privilege_mode !== 2'b11 ||
+        dut.core.csr_file.mcause !== 64'd12 || dut.core.csr_file.mtval !== 64'h2000 ||
+        dut.core.csr_file.mepc !== 64'h2000) begin
+      $display("FAIL Sv39 fetch fault trace final state commits=%0d privilege=%b mcause=%h mtval=%h mepc=%h",
+               commit_count, dut.core.privilege_mode, dut.core.csr_file.mcause,
+               dut.core.csr_file.mtval, dut.core.csr_file.mepc);
       failures = failures + 1;
     end
 
