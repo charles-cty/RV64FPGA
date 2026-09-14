@@ -39,7 +39,7 @@ uv run python -m unittest discover -s tests
 `xvlog`、`xelab`、`xsim`，并检查日志中的 `SIM PASS`。它不会运行综合、实现、下载或
 flash 编程。
 
-可用的 xsim 回归名为 `alu`、`decoder`、`regfile`、`imm`、`core`、`core_csr`、`core_atomic`、`core_alignment`、`soc`、`soc_uart`、`soc_irq`、`soc_mmu`、`soc_mmu_fault`、`soc_mmu_fault_diff`、`soc_mmu_sum_diff`、`soc_mmu_user_diff`、`soc_cache_diff`、`soc_mmu_diff`、`soc_ddr3_model`、`soc_ddr3_fault`、`csr`、`atomic`、`cache`、`clint`、`plic`、`uart`、`mmu`、`ddr3_model`、`ddr3_axi_adapter` 和 `async_memory_bridge`。`run-core-diff.sh`
+可用的 xsim 回归名为 `alu`、`decoder`、`regfile`、`imm`、`core`、`core_csr`、`core_atomic`、`core_alignment`、`soc`、`soc_uart`、`soc_irq`、`soc_mmu`、`soc_mmu_fault`、`soc_mmu_fault_diff`、`soc_mmu_sum_diff`、`soc_mmu_user_diff`、`soc_cache_diff`、`soc_mmu_diff`、`soc_ddr3_model`、`soc_ddr3_fault`、`csr`、`atomic`、`cache`、`clint`、`plic`、`uart`、`mmu`、`ddr3_model`、`ddr3_axi_adapter`、`async_memory_bridge` 和 `ddr3_mig_path`。`run-core-diff.sh`
 会在 `core` xsim 完成后生成独立 ISS 期望 trace，并运行 RTL↔ISS 比较器。
 
 ## 当前状态

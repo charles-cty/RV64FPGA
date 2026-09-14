@@ -81,6 +81,12 @@ abort an outstanding transaction. `async_memory_bridge` xsim uses unrelated
 clock periods and verifies mailbox field stability, response-error propagation,
 backpressure, and reset cancellation without a duplicate response.
 
+`rtl/rv64_ddr3_mig_path.sv` composes the CDC mailbox and UI-domain AXI adapter
+behind the CPU-side memory contract. Its `ddr3_mig_path` xsim regression drives
+AXI responses under unrelated CPU/UI clocks and verifies read-lane selection,
+write-lane strobes, AXI error propagation, and calibration rejection. This
+composition remains vendor-IP-free and is not yet connected to `rv64_bram_soc`.
+
 Before hardware work, xsim must connect this endpoint or a protocol-equivalent
 behavioral model to the future adapter. Required integration regressions are:
 

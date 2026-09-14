@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('alu', 'decoder', 'regfile', 'imm', 'core', 'core_csr', 'core_atomic', 'core_alignment', 'soc', 'soc_uart', 'soc_irq', 'soc_mmu', 'soc_mmu_fault', 'soc_mmu_fault_diff', 'soc_mmu_sum_diff', 'soc_mmu_user_diff', 'soc_cache_diff', 'soc_mmu_diff', 'soc_ddr3_model', 'soc_ddr3_fault', 'csr', 'atomic', 'cache', 'clint', 'plic', 'uart', 'mmu', 'ddr3_model', 'ddr3_axi_adapter', 'async_memory_bridge')]
+    [ValidateSet('alu', 'decoder', 'regfile', 'imm', 'core', 'core_csr', 'core_atomic', 'core_alignment', 'soc', 'soc_uart', 'soc_irq', 'soc_mmu', 'soc_mmu_fault', 'soc_mmu_fault_diff', 'soc_mmu_sum_diff', 'soc_mmu_user_diff', 'soc_cache_diff', 'soc_mmu_diff', 'soc_ddr3_model', 'soc_ddr3_fault', 'csr', 'atomic', 'cache', 'clint', 'plic', 'uart', 'mmu', 'ddr3_model', 'ddr3_axi_adapter', 'async_memory_bridge', 'ddr3_mig_path')]
     [string]$Test = 'alu',
     [string]$SourceRoot = (Split-Path -Parent $PSScriptRoot),
     [string]$VivadoBat = 'C:\AMDDesignTools\2026.1\Vivado\bin\vivado.bat',
@@ -138,6 +138,9 @@ try {
     } elseif ($Test -eq 'async_memory_bridge') {
         $sources += @('rtl\rv64_async_memory_bridge.sv', 'sim\tb_rv64_async_memory_bridge.sv')
         $top = 'tb_rv64_async_memory_bridge'
+    } elseif ($Test -eq 'ddr3_mig_path') {
+        $sources += @('rtl\rv64_async_memory_bridge.sv', 'rtl\rv64_ddr3_axi_adapter.sv', 'rtl\rv64_ddr3_mig_path.sv', 'sim\tb_rv64_ddr3_mig_path.sv')
+        $top = 'tb_rv64_ddr3_mig_path'
     } else {
         $sources += @('rtl\rv64_uart.sv', 'sim\tb_rv64_uart.sv')
         $top = 'tb_rv64_uart'

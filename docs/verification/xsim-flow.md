@@ -94,6 +94,9 @@ fault。
 `./scripts/run-xsim.sh async_memory_bridge` 验证 CPU 与 DDR3 UI 域之间的异步
 single-request mailbox，不同的时钟频率、反压、error 和共同 reset 都由该回归覆盖。
 
+`./scripts/run-xsim.sh ddr3_mig_path` 验证完整的 vendor-IP-free DDR3 path 组合，
+包括 CDC、512-bit AXI lane 选择和 calibration/error 回传。
+
 `./scripts/run-xsim.sh soc_cache_diff` 导出 cacheable BRAM SoC 的 RTL 提交 trace；
 `./scripts/run-soc-cache-diff.sh` 再以独立 ISS 生成并比较完整期望 trace。
 
