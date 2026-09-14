@@ -15,6 +15,8 @@ module rv64_bram_soc #(
   localparam logic [63:0] UART_ADDRESS = 64'h0000_0000_1000_0000;
   localparam logic [63:0] CLINT_ADDRESS = 64'h0000_0000_0200_0000;
   localparam logic [63:0] PLIC_ADDRESS = 64'h0000_0000_0c00_0000;
+  localparam logic [63:0] DDR3_BASE_ADDRESS = 64'h0000_0000_8000_0000;
+  localparam logic [63:0] DDR3_END_ADDRESS = 64'h0000_0001_0000_0000;
 
   logic [31:0] instruction_memory [0:16383];
   logic [63:0] data_memory [0:8191];
@@ -89,6 +91,9 @@ module rv64_bram_soc #(
   logic [63:0] data_physical_address_latched;
   logic data_translation_ready;
   logic data_bram_request;
+  logic data_ddr3_access;
+  logic data_ddr3_request;
+  logic data_cache_request;
   logic data_cache_request_ready;
   logic data_cache_response_valid;
   logic [63:0] data_cache_response_data;
@@ -97,6 +102,7 @@ module rv64_bram_soc #(
   logic [63:0] data_cache_memory_address;
   logic [63:0] data_cache_memory_write_data;
   logic [7:0] data_cache_memory_write_strobe;
+  logic data_cache_memory_ddr3;
   logic ddr3_model_ready;
   logic [63:0] ddr3_model_read_data;
   logic ddr3_model_error;
@@ -157,8 +163,13 @@ module rv64_bram_soc #(
                         (data_physical_address[63:22] == PLIC_ADDRESS[63:22]);
   assign data_bram_request = data_valid && data_translation_ready &&
                              data_physical_address[63:16] == 48'b0;
+  assign data_ddr3_access = data_translation_ready &&
+                             data_physical_address >= DDR3_BASE_ADDRESS &&
+                             data_physical_address < DDR3_END_ADDRESS;
+  assign data_ddr3_request = data_valid && data_ddr3_access;
+  assign data_cache_request = data_bram_request || data_ddr3_request;
   assign data_ready = data_translation_ready &&
-                      (data_bram_request ? data_cache_response_valid :
+                      (data_cache_request ? data_cache_response_valid :
                        uart_request ? uart_ready :
                        clint_request ? clint_ready :
                        plic_request ? plic_ready : 1'b1);
@@ -168,7 +179,9 @@ module rv64_bram_soc #(
                        privilege_mode == data_translation_privilege &&
                        sum_enable == data_translation_sum &&
                        data_translation_fault_latched) ||
-                      (USE_DDR3_MODEL && ddr3_model_error);
+                      (data_ddr3_access && !USE_DDR3_MODEL) ||
+                      (data_cache_memory_valid && data_cache_memory_ddr3 &&
+                       ddr3_model_error);
   assign software_interrupt = clint_software_interrupt;
   assign timer_interrupt = clint_timer_interrupt;
   assign external_interrupt = plic_external_interrupt;
@@ -224,9 +237,9 @@ module rv64_bram_soc #(
     .clk(clk),
     .reset(reset),
     .calibrated(DDR3_MODEL_CALIBRATED),
-    .request_valid(USE_DDR3_MODEL && data_cache_memory_valid),
+    .request_valid(USE_DDR3_MODEL && data_cache_memory_valid && data_cache_memory_ddr3),
     .request_write(data_cache_memory_write),
-    .request_address(data_cache_memory_address),
+    .request_address(data_cache_memory_address - DDR3_BASE_ADDRESS),
     .request_write_data(data_cache_memory_write_data),
     .request_write_strobe(data_cache_memory_write_strobe),
     .request_ready(ddr3_model_ready),
@@ -237,7 +250,7 @@ module rv64_bram_soc #(
   rv64_cache #(.LINE_COUNT(4)) data_cache (
     .clk(clk),
     .reset(reset),
-    .request_valid(data_bram_request),
+    .request_valid(data_cache_request),
     .request_ready(data_cache_request_ready),
     .request_write(data_write),
     .request_address(data_physical_address),
@@ -246,14 +259,17 @@ module rv64_bram_soc #(
     .response_valid(data_cache_response_valid),
     .response_read_data(data_cache_response_data),
     .memory_valid(data_cache_memory_valid),
-    .memory_ready(USE_DDR3_MODEL ? ddr3_model_ready : 1'b1),
+    .memory_ready(data_cache_memory_ddr3 ? (USE_DDR3_MODEL ? ddr3_model_ready : 1'b1) : 1'b1),
     .memory_write(data_cache_memory_write),
     .memory_address(data_cache_memory_address),
     .memory_write_data(data_cache_memory_write_data),
     .memory_write_strobe(data_cache_memory_write_strobe),
-    .memory_read_data(USE_DDR3_MODEL ? ddr3_model_read_data :
+    .memory_read_data(data_cache_memory_ddr3 && USE_DDR3_MODEL ? ddr3_model_read_data :
                       data_memory[data_cache_memory_address[15:3]])
   );
+
+  assign data_cache_memory_ddr3 = data_cache_memory_address >= DDR3_BASE_ADDRESS &&
+                                  data_cache_memory_address < DDR3_END_ADDRESS;
 
   always_comb begin
     instruction_pte_read_data = '0;
@@ -306,7 +322,7 @@ module rv64_bram_soc #(
   );
 
   always_comb begin
-    if (data_bram_request) begin
+    if (data_cache_request) begin
       data_read_data = data_cache_response_data;
     end else if (uart_request) begin
       data_read_data = uart_read_data;
@@ -379,7 +395,8 @@ module rv64_bram_soc #(
         end
       end
 
-      if (data_cache_memory_valid && data_cache_memory_write) begin
+      if (data_cache_memory_valid && data_cache_memory_write &&
+          data_cache_memory_address[63:16] == 48'b0) begin
         for (byte_index = 0; byte_index < 8; byte_index = byte_index + 1) begin
           if (data_cache_memory_write_strobe[byte_index]) begin
             data_memory[data_cache_memory_address[15:3]][byte_index*8 +: 8] <=
@@ -393,7 +410,8 @@ module rv64_bram_soc #(
           if (data_write_strobe[0]) begin
             led <= data_write_data[2:0];
           end
-        end else if (!data_bram_request && !uart_request && !clint_request && !plic_request) begin
+        end else if (!data_bram_request && !data_ddr3_request &&
+                     !uart_request && !clint_request && !plic_request) begin
           for (byte_index = 0; byte_index < 8; byte_index = byte_index + 1) begin
             if (data_write_strobe[byte_index]) begin
               data_memory[data_physical_address[15:3]][byte_index*8 +: 8] <= data_write_data[byte_index*8 +: 8];

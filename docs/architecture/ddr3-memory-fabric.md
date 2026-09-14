@@ -50,16 +50,16 @@ request, delays completion, preserves byte strobes, and reports an error while
 read-after-write, byte strobe, unavailable, and pending-reset behavior. It is
 not a MIG model and cannot be used as DDR3 hardware evidence.
 
-`rv64_bram_soc` can select this endpoint with `USE_DDR3_MODEL=1`; the
+`rv64_bram_soc` can select this endpoint with `USE_DDR3_MODEL=1`. Its modelled
+DDR3 physical window is `0x0000_0000_8000_0000` through
+`0x0000_0000_ffff_ffff`; lower physical addresses remain BRAM-backed. The
 `soc_ddr3_model` xsim regression proves a cache write-through followed by a
-delayed read miss and a read hit. The current SoC selection fixes calibration
-to ready and does not yet expose `response_error` to the core, so calibration
-error handling remains an adapter/M-mode boot-policy task.
+delayed read miss and a read hit in that DDR3 window.
 
 `soc_ddr3_fault` drives the model with calibration unavailable and proves that
-the core receives a precise load access fault (`mcause=13`, `mepc=0x8`,
-`mtval=0`) without a destination-register write. The same error signal will
-later originate from the MIG wrapper rather than this model.
+the core receives a precise load access fault (`mcause=13`, `mepc=0x14`,
+`mtval=0x0000_0000_8000_0000`) without a destination-register write. The same
+error signal will later originate from the MIG wrapper rather than this model.
 
 `rtl/rv64_ddr3_axi_adapter.sv` is the first non-vendor portion of that wrapper.
 It operates in the future MIG UI clock domain and permits one request at a

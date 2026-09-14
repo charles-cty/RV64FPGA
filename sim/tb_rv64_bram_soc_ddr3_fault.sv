@@ -20,15 +20,18 @@ module tb_rv64_bram_soc_ddr3_fault;
     for (index = 0; index < 16384; index = index + 1) dut.instruction_memory[index] = 32'h0000_0013;
     dut.instruction_memory[0] = 32'h0400_0093; // addi x1, x0, 64
     dut.instruction_memory[1] = 32'h3050_9073; // csrrw x0, mtvec, x1
-    dut.instruction_memory[2] = 32'h0000_3103; // ld x2, 0(x0)
+    dut.instruction_memory[2] = 32'h8000_0537; // lui x10, 0x80000
+    dut.instruction_memory[3] = 32'h0205_1513; // slli x10, x10, 32
+    dut.instruction_memory[4] = 32'h0205_5513; // srli x10, x10, 32
+    dut.instruction_memory[5] = 32'h0005_3103; // ld x2, 0(x10)
     dut.instruction_memory[16] = 32'h0000_006f;
     @(posedge clk);
     #1;
     reset = 1'b0;
     repeat (20) @(posedge clk);
     #1;
-    if (dut.core.csr_file.mcause !== 64'd13 || dut.core.csr_file.mtval !== 64'd0 ||
-        dut.core.csr_file.mepc !== 64'd8 || dut.core.instruction_address !== 64'h40 ||
+    if (dut.core.csr_file.mcause !== 64'd13 || dut.core.csr_file.mtval !== 64'h8000_0000 ||
+        dut.core.csr_file.mepc !== 64'd20 || dut.core.instruction_address !== 64'h40 ||
         dut.core.register_file.registers[2] !== 64'b0) begin
       $display("FAIL DDR3 unavailable fault cause=%h value=%h pc=%h next=%h x2=%h",
                dut.core.csr_file.mcause, dut.core.csr_file.mtval, dut.core.csr_file.mepc,

@@ -19,11 +19,14 @@ module tb_rv64_bram_soc_ddr3_model;
     failures = 0;
     #1;
     for (index = 0; index < 16384; index = index + 1) dut.instruction_memory[index] = 32'h0000_0013;
-    dut.instruction_memory[0] = 32'h0050_0093; // addi x1, x0, 5
-    dut.instruction_memory[1] = 32'h0010_3023; // sd x1, 0(x0)
-    dut.instruction_memory[2] = 32'h0000_3103; // ld x2, 0(x0), delayed miss
-    dut.instruction_memory[3] = 32'h0000_3183; // ld x3, 0(x0), cache hit
-    dut.instruction_memory[4] = 32'h0000_006f;
+    dut.instruction_memory[0] = 32'h8000_0537; // lui x10, 0x80000
+    dut.instruction_memory[1] = 32'h0205_1513; // slli x10, x10, 32
+    dut.instruction_memory[2] = 32'h0205_5513; // srli x10, x10, 32
+    dut.instruction_memory[3] = 32'h0050_0093; // addi x1, x0, 5
+    dut.instruction_memory[4] = 32'h0015_3023; // sd x1, 0(x10)
+    dut.instruction_memory[5] = 32'h0005_3103; // ld x2, 0(x10), delayed miss
+    dut.instruction_memory[6] = 32'h0005_3183; // ld x3, 0(x10), cache hit
+    dut.instruction_memory[7] = 32'h0000_006f;
     @(posedge clk);
     #1;
     reset = 1'b0;
@@ -34,7 +37,8 @@ module tb_rv64_bram_soc_ddr3_model;
       #1;
     end
 
-    if (dut.core.register_file.registers[2] !== 64'd5 ||
+    if (dut.core.register_file.registers[10] !== 64'h0000_0000_8000_0000 ||
+        dut.core.register_file.registers[2] !== 64'd5 ||
         dut.core.register_file.registers[3] !== 64'd5 ||
         !dut.data_cache.line_valid[0] ||
         dut.ddr3_model.memory[0] !== 64'd5) begin
