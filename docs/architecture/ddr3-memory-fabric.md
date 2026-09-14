@@ -14,7 +14,7 @@ exists yet.
 ## CPU-Side Contract
 
 The data and instruction caches are the two cached-DDR masters. Each presents
-at most one request at a time; the future shared arbiter serializes them before
+at most one request at a time; `rtl/rv64_ddr3_arbiter.sv` serializes them before
 the MIG wrapper. A selected cache presents:
 
 | Signal group | Meaning |
@@ -61,6 +61,11 @@ The SoC's optional model path also supports instruction fetches from the same
 window through a separate instruction cache endpoint; `soc_ddr3_instruction`
 verifies a BRAM-to-DDR3 jump and delayed fetch. The simulation endpoints are
 separate models until the shared MIG arbiter is integrated.
+
+The vendor-free arbiter regression (`ddr3_arbiter`) verifies alternating
+instruction/data grants, payload stability, response routing, and read-after-
+write behavior against the delayed DDR3 endpoint. SoC integration still uses
+separate model instances until the arbiter is connected to the common MIG path.
 
 `soc_ddr3_fault` drives the model with calibration unavailable and proves that
 the core receives a precise load access fault (`mcause=13`, `mepc=0x14`,

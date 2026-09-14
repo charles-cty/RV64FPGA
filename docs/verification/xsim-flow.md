@@ -106,5 +106,8 @@ single-request mailbox，不同的时钟频率、反压、error 和共同 reset 
 `./scripts/run-xsim.sh soc_ddr3_instruction` 验证 BRAM 启动代码跳转到 DDR3 后的指令 cache
 miss、延迟取指、后续 hit 和实际指令执行；它不替代共享 MIG 端点的最终实现。
 
+`./scripts/run-xsim.sh ddr3_arbiter` 验证指令/数据两个 DDR master 的轮询仲裁、响应路由和
+读后写顺序；它是共享 MIG 端点接入 SoC 前的独立 contract 回归。
+
 `./scripts/run-xsim.sh uart` 与 `./scripts/run-xsim.sh soc_uart` 分别验证 UART 8N1
 发送器和 SoC `0x1000_0000` MMIO 接线；它们不证明板上存在可用 UART 管脚。
