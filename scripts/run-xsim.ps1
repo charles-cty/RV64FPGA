@@ -71,7 +71,7 @@ try {
         $sources += @(
             'rtl\rv64_alu.sv', 'rtl\rv64_decoder.sv', 'rtl\rv64_imm_gen.sv',
             'rtl\rv64_regfile.sv', 'rtl\rv64_csr.sv', 'rtl\rv64_atomic_unit.sv',
-            'rtl\rv64_clint.sv', 'rtl\rv64_plic.sv', 'rtl\rv64_mmu.sv', 'rtl\rv64_cache.sv', 'rtl\rv64_ddr3_model.sv', 'rtl\rv64_core.sv',
+            'rtl\rv64_clint.sv', 'rtl\rv64_plic.sv', 'rtl\rv64_mmu.sv', 'rtl\rv64_cache.sv', 'rtl\rv64_ddr3_model.sv', 'rtl\rv64_ddr3_arbiter.sv', 'rtl\rv64_core.sv',
             'rtl\rv64_uart.sv', 'rtl\rv64_bram_soc.sv'
         )
         if ($Test -eq 'soc') {

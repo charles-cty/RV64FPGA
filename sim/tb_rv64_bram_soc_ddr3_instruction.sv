@@ -21,15 +21,15 @@ module tb_rv64_bram_soc_ddr3_instruction;
       dut.instruction_memory[index] = 32'h0000_0013;
     end
     for (index = 0; index < 1024; index = index + 1) begin
-      dut.instruction_ddr3_model.memory[index] = 64'b0;
+      dut.ddr3_model.memory[index] = 64'b0;
     end
 
     dut.instruction_memory[0] = 32'h8000_0537; // lui x10, 0x80000
     dut.instruction_memory[1] = 32'h0205_1513; // slli x10, x10, 32
     dut.instruction_memory[2] = 32'h0205_5513; // srli x10, x10, 32
     dut.instruction_memory[3] = 32'h0005_0067; // jalr x0, 0(x10)
-    dut.instruction_ddr3_model.memory[0] = 64'h0070_0113_02a0_0093; // addi x1, x0, 42; addi x2, x0, 7
-    dut.instruction_ddr3_model.memory[1] = 64'h0000_006f_0000_0013; // nop; jal x0, 0
+    dut.ddr3_model.memory[0] = 64'h0070_0113_02a0_0093; // addi x1, x0, 42; addi x2, x0, 7
+    dut.ddr3_model.memory[1] = 64'h0000_006f_0000_0013; // nop; jal x0, 0
 
     @(posedge clk);
     #1;

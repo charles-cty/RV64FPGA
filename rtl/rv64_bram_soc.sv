@@ -120,6 +120,14 @@ module rv64_bram_soc #(
   logic ddr3_model_ready;
   logic [63:0] ddr3_model_read_data;
   logic ddr3_model_error;
+  logic ddr3_memory_request_valid;
+  logic ddr3_memory_request_write;
+  logic [63:0] ddr3_memory_request_address;
+  logic [63:0] ddr3_memory_request_write_data;
+  logic [7:0] ddr3_memory_request_write_strobe;
+  logic ddr3_memory_request_ready;
+  logic [63:0] ddr3_memory_response_read_data;
+  logic ddr3_memory_response_error;
   logic data_pte_request;
   logic [63:0] data_pte_address;
   logic [63:0] data_pte_read_data;
@@ -257,32 +265,47 @@ module rv64_bram_soc #(
     .busy()
   );
 
+  rv64_ddr3_arbiter ddr3_arbiter (
+    .clk(clk),
+    .reset(reset),
+    .instruction_request_valid(USE_DDR3_MODEL && instruction_cache_memory_valid && instruction_cache_memory_ddr3),
+    .instruction_request_write(instruction_cache_memory_write),
+    .instruction_request_address(instruction_cache_memory_address - DDR3_BASE_ADDRESS),
+    .instruction_request_write_data(instruction_cache_memory_write_data),
+    .instruction_request_write_strobe(instruction_cache_memory_write_strobe),
+    .instruction_request_ready(instruction_ddr3_model_ready),
+    .instruction_response_read_data(instruction_ddr3_model_read_data),
+    .instruction_response_error(instruction_ddr3_model_error),
+    .data_request_valid(USE_DDR3_MODEL && data_cache_memory_valid && data_cache_memory_ddr3),
+    .data_request_write(data_cache_memory_write),
+    .data_request_address(data_cache_memory_address - DDR3_BASE_ADDRESS),
+    .data_request_write_data(data_cache_memory_write_data),
+    .data_request_write_strobe(data_cache_memory_write_strobe),
+    .data_request_ready(ddr3_model_ready),
+    .data_response_read_data(ddr3_model_read_data),
+    .data_response_error(ddr3_model_error),
+    .memory_request_valid(ddr3_memory_request_valid),
+    .memory_request_write(ddr3_memory_request_write),
+    .memory_request_address(ddr3_memory_request_address),
+    .memory_request_write_data(ddr3_memory_request_write_data),
+    .memory_request_write_strobe(ddr3_memory_request_write_strobe),
+    .memory_request_ready(ddr3_memory_request_ready),
+    .memory_response_read_data(ddr3_memory_response_read_data),
+    .memory_response_error(ddr3_memory_response_error)
+  );
+
   rv64_ddr3_model #(.RESPONSE_DELAY(DDR3_MODEL_RESPONSE_DELAY)) ddr3_model (
     .clk(clk),
     .reset(reset),
     .calibrated(DDR3_MODEL_CALIBRATED),
-    .request_valid(USE_DDR3_MODEL && data_cache_memory_valid && data_cache_memory_ddr3),
-    .request_write(data_cache_memory_write),
-    .request_address(data_cache_memory_address - DDR3_BASE_ADDRESS),
-    .request_write_data(data_cache_memory_write_data),
-    .request_write_strobe(data_cache_memory_write_strobe),
-    .request_ready(ddr3_model_ready),
-    .response_read_data(ddr3_model_read_data),
-    .response_error(ddr3_model_error)
-  );
-
-  rv64_ddr3_model #(.RESPONSE_DELAY(DDR3_MODEL_RESPONSE_DELAY)) instruction_ddr3_model (
-    .clk(clk),
-    .reset(reset),
-    .calibrated(DDR3_MODEL_CALIBRATED),
-    .request_valid(USE_DDR3_MODEL && instruction_cache_memory_valid && instruction_cache_memory_ddr3),
-    .request_write(instruction_cache_memory_write),
-    .request_address(instruction_cache_memory_address - DDR3_BASE_ADDRESS),
-    .request_write_data(instruction_cache_memory_write_data),
-    .request_write_strobe(instruction_cache_memory_write_strobe),
-    .request_ready(instruction_ddr3_model_ready),
-    .response_read_data(instruction_ddr3_model_read_data),
-    .response_error(instruction_ddr3_model_error)
+    .request_valid(ddr3_memory_request_valid),
+    .request_write(ddr3_memory_request_write),
+    .request_address(ddr3_memory_request_address),
+    .request_write_data(ddr3_memory_request_write_data),
+    .request_write_strobe(ddr3_memory_request_write_strobe),
+    .request_ready(ddr3_memory_request_ready),
+    .response_read_data(ddr3_memory_response_read_data),
+    .response_error(ddr3_memory_response_error)
   );
 
   rv64_cache #(.LINE_COUNT(4)) instruction_cache (
