@@ -19,5 +19,5 @@
 cache 已接入 BRAM 数据路径，有独立回归及 bare-mode RTL↔ISS differential。基础 Sv39
 配置、MRET、取指和数据访问已有 RTL↔ISS differential；无效取指页以及 execute-only 数据
 页的 fetch/load/store page fault 已检查 `mepc`、`mcause`、`mtval` 和目标特权级；S-mode
-对 U 页的 `SUM=0/1` data access 已有 differential。U-mode 及 S-mode 对 U 页取指的
-权限边界仍未完成，因此尚未满足 M4 退出条件。
+对 U 页的 `SUM=0/1` data access 已有 differential；U-mode 对 U/S 页的 fetch/load 权限
+已覆盖。S-mode 对 U 页取指的权限边界仍未完成，因此尚未满足 M4 退出条件。

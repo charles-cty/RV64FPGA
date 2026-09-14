@@ -11,6 +11,8 @@ sys.path.insert(0, str(ROOT / "tools" / "iss"))
 from soc_mmu_fault_program import generate_fetch_trace, generate_load_trace, generate_store_trace
 from soc_mmu_program import generate_trace, make_pte
 from soc_mmu_sum_program import DATA_VALUE, generate_sum_off_trace, generate_sum_on_trace
+from soc_mmu_user_program import DATA_VALUE as USER_DATA_VALUE
+from soc_mmu_user_program import generate_supervisor_data_trace, generate_user_data_trace
 from sv39 import PageFault, Sv39Reference
 
 
@@ -95,6 +97,20 @@ class SocMmuProgramTraceTest(unittest.TestCase):
         self.assertEqual(sum_on_trace[-1]["rd_value"], f"0x{DATA_VALUE:016x}")
         self.assertIsNone(sum_on_trace[-1]["trap_cause"])
         self.assertEqual(sum_on_trace[-1]["privilege"], 1)
+
+    def test_user_mode_rejects_supervisor_data_and_accepts_user_data(self) -> None:
+        denied_trace = generate_supervisor_data_trace()
+        allowed_trace = generate_user_data_trace()
+
+        self.assertEqual(len(denied_trace), 14)
+        self.assertEqual(denied_trace[-1]["pc"], "0x0000000000000104")
+        self.assertEqual(denied_trace[-1]["trap_cause"], "0x000000000000000d")
+        self.assertEqual(denied_trace[-1]["trap_value"], "0x0000000000002000")
+        self.assertEqual(denied_trace[-1]["privilege"], 3)
+        self.assertEqual(len(allowed_trace), 14)
+        self.assertEqual(allowed_trace[-1]["rd_value"], f"0x{USER_DATA_VALUE:016x}")
+        self.assertIsNone(allowed_trace[-1]["trap_cause"])
+        self.assertEqual(allowed_trace[-1]["privilege"], 0)
 
 
 if __name__ == "__main__":

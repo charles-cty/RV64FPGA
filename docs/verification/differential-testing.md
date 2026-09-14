@@ -51,8 +51,11 @@ RTL trace 比较 M-mode 配置、进入 S-mode 后的 Sv39 取指及虚拟数据
 与返回特权级，同时确认 store 没有可见内存副作用。
 
 `scripts/run-soc-mmu-sum-diff.sh` 使用 supervisor-only 代码页和 user R/W 数据页：先
-比较 `SUM=0` 的 load page fault，再比较 `SUM=1` 对同一地址的成功 load 和返回值。U-mode
-以及 S-mode 对 U 页的 fetch 权限组合仍待纳入 differential。
+比较 `SUM=0` 的 load page fault，再比较 `SUM=1` 对同一地址的成功 load 和返回值。
+
+`scripts/run-soc-mmu-user-diff.sh` 在 user executable 代码页运行 U-mode `ld`：先对
+supervisor-only 数据页比较 load page fault，再将同一数据页设为 user 并比较成功 load。
+该场景同时证明 U-mode 取指需要 U 权限；仅 S-mode 对 U 页的 fetch 拒绝仍待纳入 differential。
 
 运行入口：
 

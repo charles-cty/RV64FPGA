@@ -76,6 +76,10 @@ privilege。
 `./scripts/run-soc-mmu-sum-diff.sh` 使用独立 Sv39 walker/ISS 比较拒绝时的精确 trap 与
 允许时的加载值。
 
+`./scripts/run-xsim.sh soc_mmu_user_diff` 导出 U-mode 对 U/S 数据页的 fetch/load trace；
+`./scripts/run-soc-mmu-user-diff.sh` 使用独立 Sv39 walker/ISS 比较 supervisor-only 页的
+精确 load fault 与将 PTE.U 置位后的成功 load。
+
 `./scripts/run-xsim.sh soc_mmu_diff` 导出基础 Sv39 SoC 的 RTL 提交 trace；
 `./scripts/run-soc-mmu-diff.sh` 以独立 PTE walker 和 ISS 生成并比较 15 条提交。
 

@@ -29,8 +29,8 @@ CI 顺序为 lint → 单元 xsim → SoC xsim → ISS differential → 覆盖�
 已验证读 hit/miss、写 hit/miss、字节掩码和冲突替换，并接入 SoC。基础 cache 与 Sv39
 核心 differential 已通过；SoC 无效取指页和 execute-only 数据页的 fetch/load/store page
 fault 已以独立 Sv39 walker/ISS 逐条比较精确 CSR trap 状态与 store 无内存副作用。S-mode
-对 U 页的 SUM load 允许/拒绝已作 differential；U-mode 与 S-mode 对 U 页取指的 differential
-测试仍待补齐。
+对 U 页的 SUM load 允许/拒绝已作 differential；U-mode 对 U/S 页的取指和 load 权限已覆盖。
+S-mode 对 U 页取指的 differential 测试仍待补齐。
 
 `core_alignment` xsim 回归覆盖未对齐的 `lw`、`sw`、`lr.w` 和 `amoadd.w`。它还使未对齐
 load 与同时到达的 `data_fault` 相遇，以确认 load-address-misaligned 的优先级，并检查
