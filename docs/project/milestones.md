@@ -16,5 +16,5 @@
 
 当前 M4 已有独立 `rv64_mmu` Sv39 walker、小型 TLB 及 xsim 回归，并已完成双 MMU
 接入 BRAM SoC 的 Sv39 取指/数据集成回归。直映 write-through/no-write-allocate 数据
-cache 已接入 BRAM 数据路径且有独立回归；核心 differential 覆盖仍未完成，因此尚未
-满足 M4 退出条件。
+cache 已接入 BRAM 数据路径，有独立回归及 bare-mode RTL↔ISS differential；Sv39/MMU
+differential 覆盖仍未完成，因此尚未满足 M4 退出条件。

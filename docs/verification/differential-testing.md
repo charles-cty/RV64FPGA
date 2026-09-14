@@ -35,6 +35,12 @@ differential 判定。
 `pc`、指令、下一 PC、目的寄存器和写回值。该 trace 目前不包含 CSR/trap 字段；这些
 字段会在 CSR 实现进入核心后加入格式并保持向后不兼容地升级。
 
+`scripts/run-soc-cache-diff.sh` 在 cacheable BRAM SoC 中运行包含 write miss、read miss、
+read hit、分支和可见内存写入的程序，再将 RTL 提交 trace 与独立 ISS 比较。
+
+该回归使用 Bare 物理地址访问，证明 cache 造成的内部等待不改变提交顺序；它不替代
+Sv39 翻译、页故障或特权 CSR 的 differential 覆盖。
+
 运行入口：
 
 ```bash

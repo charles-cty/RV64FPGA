@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('alu', 'decoder', 'regfile', 'imm', 'core', 'core_csr', 'core_atomic', 'soc', 'soc_uart', 'soc_irq', 'soc_mmu', 'csr', 'atomic', 'cache', 'clint', 'plic', 'uart', 'mmu')]
+    [ValidateSet('alu', 'decoder', 'regfile', 'imm', 'core', 'core_csr', 'core_atomic', 'soc', 'soc_uart', 'soc_irq', 'soc_mmu', 'soc_cache_diff', 'csr', 'atomic', 'cache', 'clint', 'plic', 'uart', 'mmu')]
     [string]$Test = 'alu',
     [string]$SourceRoot = (Split-Path -Parent $PSScriptRoot),
     [string]$VivadoBat = 'C:\AMDDesignTools\2026.1\Vivado\bin\vivado.bat',
@@ -64,7 +64,7 @@ try {
             $sources += 'sim\tb_rv64_core_atomic.sv'
             $top = 'tb_rv64_core_atomic'
         }
-    } elseif ($Test -eq 'soc' -or $Test -eq 'soc_uart' -or $Test -eq 'soc_irq' -or $Test -eq 'soc_mmu') {
+    } elseif ($Test -eq 'soc' -or $Test -eq 'soc_uart' -or $Test -eq 'soc_irq' -or $Test -eq 'soc_mmu' -or $Test -eq 'soc_cache_diff') {
         $sources += @(
             'rtl\rv64_alu.sv', 'rtl\rv64_decoder.sv', 'rtl\rv64_imm_gen.sv',
             'rtl\rv64_regfile.sv', 'rtl\rv64_csr.sv', 'rtl\rv64_atomic_unit.sv',
@@ -80,9 +80,12 @@ try {
         } elseif ($Test -eq 'soc_irq') {
             $sources += 'sim\tb_rv64_bram_soc_interrupt.sv'
             $top = 'tb_rv64_bram_soc_interrupt'
-        } else {
+        } elseif ($Test -eq 'soc_mmu') {
             $sources += 'sim\tb_rv64_bram_soc_mmu.sv'
             $top = 'tb_rv64_bram_soc_mmu'
+        } else {
+            $sources += 'sim\tb_rv64_bram_soc_cache_diff.sv'
+            $top = 'tb_rv64_bram_soc_cache_diff'
         }
     } elseif ($Test -eq 'csr') {
         $sources += @('rtl\rv64_csr.sv', 'sim\tb_rv64_csr.sv')
@@ -120,7 +123,7 @@ try {
 
     New-Item -ItemType Directory -Force -Path $resultDirectory | Out-Null
     Copy-Item -LiteralPath $logPath -Destination (Join-Path $resultDirectory 'sim.log') -Force
-    if ($Test -eq 'core') {
+    if ($Test -eq 'core' -or $Test -eq 'soc_cache_diff') {
         $tracePath = Join-Path $workingDirectory 'rtl_trace.jsonl'
         if (-not (Test-Path -LiteralPath $tracePath -PathType Leaf)) {
             throw "core simulation did not produce a trace: $tracePath"

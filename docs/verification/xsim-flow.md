@@ -63,5 +63,8 @@ interrupt 边界。
 `./scripts/run-xsim.sh cache` 验证直映写通数据 cache 的读 miss 填充、读 hit、写 hit 和
 字节写掩码更新。
 
+`./scripts/run-xsim.sh soc_cache_diff` 导出 cacheable BRAM SoC 的 RTL 提交 trace；
+`./scripts/run-soc-cache-diff.sh` 再以独立 ISS 生成并比较完整期望 trace。
+
 `./scripts/run-xsim.sh uart` 与 `./scripts/run-xsim.sh soc_uart` 分别验证 UART 8N1
 发送器和 SoC `0x1000_0000` MMIO 接线；它们不证明板上存在可用 UART 管脚。
