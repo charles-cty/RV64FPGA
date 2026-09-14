@@ -14,6 +14,14 @@ module tb_rv64_csr;
   logic [63:0] trap_value;
   logic [1:0] current_privilege;
   logic return_from_machine;
+  logic software_interrupt;
+  logic timer_interrupt;
+  logic external_interrupt;
+  logic machine_interrupt_enable;
+  logic [63:0] machine_interrupt_enable_bits;
+  logic [63:0] machine_interrupt_pending_bits;
+  logic [63:0] machine_trap_vector;
+  logic [63:0] machine_exception_pc;
   integer failures;
 
   rv64_csr dut (.*);
@@ -54,6 +62,9 @@ module tb_rv64_csr;
     trap_value = '0;
     current_privilege = 2'b01;
     return_from_machine = 1'b0;
+    software_interrupt = 1'b0;
+    timer_interrupt = 1'b0;
+    external_interrupt = 1'b0;
     failures = 0;
 
     @(posedge clk);
