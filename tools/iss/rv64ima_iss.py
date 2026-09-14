@@ -121,6 +121,8 @@ class RV64IMAISS:
         lhs_s, rhs_s = signed(lhs_u, width), signed(rhs_u, width)
 
         if funct7 == 0x00:
+            if width == 32 and funct3 not in (0x0, 0x1, 0x5):
+                raise IllegalInstruction("unsupported OP-32 funct3")
             operations = {
                 0x0: lhs_u + rhs_u,
                 0x1: lhs_u << (rhs_u & shift_mask),
@@ -136,6 +138,8 @@ class RV64IMAISS:
         elif funct7 == 0x20 and funct3 == 0x5:
             operations = {0x5: lhs_s >> (rhs_u & shift_mask)}
         elif funct7 == 0x01:
+            if width == 32 and funct3 not in (0x0, 0x4, 0x5, 0x6, 0x7):
+                raise IllegalInstruction("unsupported M OP-32 funct3")
             operations = self._multiply_divide(funct3, lhs_u, rhs_u, lhs_s, rhs_s, width)
         else:
             raise IllegalInstruction("unsupported OP funct7")

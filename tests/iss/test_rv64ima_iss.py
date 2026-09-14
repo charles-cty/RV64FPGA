@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools" / "iss"))
 
-from rv64ima_iss import RV64IMAISS
+from rv64ima_iss import IllegalInstruction, RV64IMAISS
 
 
 def encode_r_type(rd: int, rs1: int, rs2: int, funct3: int, funct7: int, opcode: int = 0x33) -> int:
@@ -50,6 +50,13 @@ class RV64IMAISSTest(unittest.TestCase):
         iss.step(encode_r_type(rd=4, rs1=1, rs2=2, funct3=2, funct7=1))
         self.assertEqual(iss.registers[3], (1 << 64) - 1)
         self.assertEqual(iss.registers[4], (1 << 64) - 1)
+
+    def test_op32_rejects_non_word_integer_operations(self) -> None:
+        iss = RV64IMAISS()
+        instruction = encode_r_type(rd=3, rs1=1, rs2=2, funct3=2, funct7=0, opcode=0x3B)
+
+        with self.assertRaises(IllegalInstruction):
+            iss.step(instruction)
 
 
 if __name__ == "__main__":
