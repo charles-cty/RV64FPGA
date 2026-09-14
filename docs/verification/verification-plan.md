@@ -54,6 +54,9 @@ read/write、AXI error 和未校准拒绝。
 `soc_ddr3_fault` xsim 回归验证未校准 DDR3 endpoint 转化为精确 load access fault，且没有
 寄存器写回。
 
+`scripts/run-soc-ddr3-diff.sh` 在 `0x8000_0000` DDR3 模型窗口运行独立 ISS/RTL 程序，逐条
+比较高地址构造、write-through、延迟 miss、cache hit、分支和可见 DDR3 内存写入。
+
 `scripts/run-m5-model-regression.sh` 聚合上述 M5 行为模型、cache 集成和 unavailable
 fault xsim 回归；它不生成 MIG IP，也不调用综合或硬件流程。
 

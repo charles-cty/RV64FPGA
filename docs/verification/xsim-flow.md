@@ -100,5 +100,8 @@ single-request mailbox，不同的时钟频率、反压、error 和共同 reset 
 `./scripts/run-xsim.sh soc_cache_diff` 导出 cacheable BRAM SoC 的 RTL 提交 trace；
 `./scripts/run-soc-cache-diff.sh` 再以独立 ISS 生成并比较完整期望 trace。
 
+`./scripts/run-soc-ddr3-diff.sh` 在 `0x8000_0000` DDR3 模型窗口运行独立程序，比较
+高地址构造、write-through、延迟 read miss、cache hit 和分支后的完整 RTL↔ISS 提交 trace。
+
 `./scripts/run-xsim.sh uart` 与 `./scripts/run-xsim.sh soc_uart` 分别验证 UART 8N1
 发送器和 SoC `0x1000_0000` MMIO 接线；它们不证明板上存在可用 UART 管脚。

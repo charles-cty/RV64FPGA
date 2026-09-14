@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('alu', 'decoder', 'regfile', 'imm', 'core', 'core_csr', 'core_atomic', 'core_alignment', 'soc', 'soc_uart', 'soc_irq', 'soc_mmu', 'soc_mmu_fault', 'soc_mmu_fault_diff', 'soc_mmu_sum_diff', 'soc_mmu_user_diff', 'soc_cache_diff', 'soc_mmu_diff', 'soc_ddr3_model', 'soc_ddr3_fault', 'csr', 'atomic', 'cache', 'clint', 'plic', 'uart', 'mmu', 'ddr3_model', 'ddr3_axi_adapter', 'async_memory_bridge', 'ddr3_mig_path')]
+    [ValidateSet('alu', 'decoder', 'regfile', 'imm', 'core', 'core_csr', 'core_atomic', 'core_alignment', 'soc', 'soc_uart', 'soc_irq', 'soc_mmu', 'soc_mmu_fault', 'soc_mmu_fault_diff', 'soc_mmu_sum_diff', 'soc_mmu_user_diff', 'soc_cache_diff', 'soc_mmu_diff', 'soc_ddr3_model', 'soc_ddr3_fault', 'soc_ddr3_diff', 'csr', 'atomic', 'cache', 'clint', 'plic', 'uart', 'mmu', 'ddr3_model', 'ddr3_axi_adapter', 'async_memory_bridge', 'ddr3_mig_path')]
     [string]$Test = 'alu',
     [string]$SourceRoot = (Split-Path -Parent $PSScriptRoot),
     [string]$VivadoBat = 'C:\AMDDesignTools\2026.1\Vivado\bin\vivado.bat',
@@ -67,7 +67,7 @@ try {
             $sources += 'sim\tb_rv64_core_alignment.sv'
             $top = 'tb_rv64_core_alignment'
         }
-    } elseif ($Test -eq 'soc' -or $Test -eq 'soc_uart' -or $Test -eq 'soc_irq' -or $Test -eq 'soc_mmu' -or $Test -eq 'soc_mmu_fault' -or $Test -eq 'soc_mmu_fault_diff' -or $Test -eq 'soc_mmu_sum_diff' -or $Test -eq 'soc_mmu_user_diff' -or $Test -eq 'soc_cache_diff' -or $Test -eq 'soc_mmu_diff' -or $Test -eq 'soc_ddr3_model' -or $Test -eq 'soc_ddr3_fault') {
+    } elseif ($Test -eq 'soc' -or $Test -eq 'soc_uart' -or $Test -eq 'soc_irq' -or $Test -eq 'soc_mmu' -or $Test -eq 'soc_mmu_fault' -or $Test -eq 'soc_mmu_fault_diff' -or $Test -eq 'soc_mmu_sum_diff' -or $Test -eq 'soc_mmu_user_diff' -or $Test -eq 'soc_cache_diff' -or $Test -eq 'soc_mmu_diff' -or $Test -eq 'soc_ddr3_model' -or $Test -eq 'soc_ddr3_fault' -or $Test -eq 'soc_ddr3_diff') {
         $sources += @(
             'rtl\rv64_alu.sv', 'rtl\rv64_decoder.sv', 'rtl\rv64_imm_gen.sv',
             'rtl\rv64_regfile.sv', 'rtl\rv64_csr.sv', 'rtl\rv64_atomic_unit.sv',
@@ -104,6 +104,9 @@ try {
         } elseif ($Test -eq 'soc_ddr3_fault') {
             $sources += 'sim\tb_rv64_bram_soc_ddr3_fault.sv'
             $top = 'tb_rv64_bram_soc_ddr3_fault'
+        } elseif ($Test -eq 'soc_ddr3_diff') {
+            $sources += 'sim\tb_rv64_bram_soc_ddr3_diff.sv'
+            $top = 'tb_rv64_bram_soc_ddr3_diff'
         } elseif ($Test -eq 'soc_cache_diff') {
             $sources += 'sim\tb_rv64_bram_soc_cache_diff.sv'
             $top = 'tb_rv64_bram_soc_cache_diff'
@@ -159,7 +162,7 @@ try {
 
     New-Item -ItemType Directory -Force -Path $resultDirectory | Out-Null
     Copy-Item -LiteralPath $logPath -Destination (Join-Path $resultDirectory 'sim.log') -Force
-    if ($Test -eq 'core' -or $Test -eq 'soc_cache_diff' -or $Test -eq 'soc_mmu_diff' -or $Test -eq 'soc_mmu_fault_diff' -or $Test -eq 'soc_mmu_sum_diff' -or $Test -eq 'soc_mmu_user_diff') {
+    if ($Test -eq 'core' -or $Test -eq 'soc_cache_diff' -or $Test -eq 'soc_mmu_diff' -or $Test -eq 'soc_mmu_fault_diff' -or $Test -eq 'soc_mmu_sum_diff' -or $Test -eq 'soc_mmu_user_diff' -or $Test -eq 'soc_ddr3_diff') {
         $tracePath = Join-Path $workingDirectory 'rtl_trace.jsonl'
         if (-not (Test-Path -LiteralPath $tracePath -PathType Leaf)) {
             throw "core simulation did not produce a trace: $tracePath"

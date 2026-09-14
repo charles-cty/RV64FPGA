@@ -12,9 +12,14 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = "Stop"
 $PSNativeCommandArgumentPassing = "Standard"
 $PSNativeCommandUseErrorActionPreference = $true
-$localScript = Join-Path $env:TEMP "rv64fpga-run-xsim.ps1"
-Copy-Item -LiteralPath $ScriptPath -Destination $localScript -Force
-& $localScript -SourceRoot $RootPath -Test $TestName
+$localScript = Join-Path $env:TEMP ("rv64fpga-run-xsim-" + [Guid]::NewGuid().ToString("N") + ".ps1")
+try {
+  Copy-Item -LiteralPath $ScriptPath -Destination $localScript -Force
+  & $localScript -SourceRoot $RootPath -Test $TestName
+  if ($LASTEXITCODE -ne 0) { throw "run-xsim.ps1 failed with exit code $LASTEXITCODE" }
+} finally {
+  Remove-Item -LiteralPath $localScript -Force -ErrorAction SilentlyContinue
+}
 '
 
 pwsh.exe -WorkingDirectory 'C:\Windows\Temp' -CommandWithArgs "$bootstrap" \

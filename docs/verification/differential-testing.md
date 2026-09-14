@@ -39,6 +39,9 @@ differential 判定。
 `scripts/run-soc-cache-diff.sh` 在 cacheable BRAM SoC 中运行包含 write miss、read miss、
 read hit、分支和可见内存写入的程序，再将 RTL 提交 trace 与独立 ISS 比较。
 
+`scripts/run-soc-ddr3-diff.sh` 使用独立 ISS 运行同一程序的 `0x8000_0000` DDR3 地址窗口，
+覆盖 64 位地址构造、DDR3 write-through、延迟 miss、后续 hit 和可见内存写入。
+
 该回归使用 Bare 物理地址访问，证明 cache 造成的内部等待不改变提交顺序；它不替代
 Sv39 翻译、页故障或特权 CSR 的 differential 覆盖。
 
