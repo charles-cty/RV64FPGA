@@ -39,6 +39,10 @@ xsim --nolog --runall --log sim.log tb_snap
 `./scripts/run-xsim.sh csr` 和 `./scripts/run-xsim.sh atomic`。这些回归均要求日志出现
 `SIM PASS`，并在发现 `SIM FAIL` 时返回失败。
 
+`./scripts/run-xsim.sh core_alignment` 验证普通 load/store 和 A 扩展 LR/AMO 的自然对齐
+trap，包含未对齐 load 与 `data_fault` 同周期时的异常优先级，以及无寄存器、内存或
+reservation 副作用的检查。
+
 `./scripts/run-xsim.sh soc` 验证 `rv64_bram_soc` 的 LED 地址映射；它与 `core` 回归
 使用相同的 Windows staging 规则。
 

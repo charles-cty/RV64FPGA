@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools" / "iss"))
 
-from rv64ima_iss import IllegalInstruction, RV64IMAISS
+from rv64ima_iss import IllegalInstruction, MisalignedAddress, RV64IMAISS
 
 
 def encode_r_type(rd: int, rs1: int, rs2: int, funct3: int, funct7: int, opcode: int = 0x33) -> int:
@@ -13,6 +13,10 @@ def encode_r_type(rd: int, rs1: int, rs2: int, funct3: int, funct7: int, opcode:
 
 def encode_i_type(rd: int, rs1: int, immediate: int, funct3: int, opcode: int = 0x13) -> int:
     return ((immediate & 0xFFF) << 20) | (rs1 << 15) | (funct3 << 12) | (rd << 7) | opcode
+
+
+def encode_s_type(rs1: int, rs2: int, immediate: int, funct3: int) -> int:
+    return (((immediate >> 5) & 0x7F) << 25) | (rs2 << 20) | (rs1 << 15) | (funct3 << 12) | ((immediate & 0x1F) << 7) | 0x23
 
 
 class RV64IMAISSTest(unittest.TestCase):
@@ -65,6 +69,32 @@ class RV64IMAISSTest(unittest.TestCase):
 
         with self.assertRaises(IllegalInstruction):
             iss.step(instruction)
+
+    def test_misaligned_load_preserves_registers_and_program_counter(self) -> None:
+        iss = RV64IMAISS(start_pc=0x100)
+        iss.registers[1] = 1
+
+        with self.assertRaises(MisalignedAddress) as context:
+            iss.step(encode_i_type(rd=2, rs1=1, immediate=0, funct3=2, opcode=0x03))
+
+        self.assertEqual(context.exception.cause, 4)
+        self.assertEqual(context.exception.address, 1)
+        self.assertEqual(iss.registers[2], 0)
+        self.assertEqual(iss.pc, 0x100)
+
+    def test_misaligned_store_preserves_memory_and_program_counter(self) -> None:
+        iss = RV64IMAISS(start_pc=0x104)
+        iss.registers[1] = 2
+        iss.registers[2] = 0xdead_beef
+        iss.memory[0] = 0x5a
+
+        with self.assertRaises(MisalignedAddress) as context:
+            iss.step(encode_s_type(rs1=1, rs2=2, immediate=0, funct3=2))
+
+        self.assertEqual(context.exception.cause, 6)
+        self.assertEqual(context.exception.address, 2)
+        self.assertEqual(iss.memory, {0: 0x5A})
+        self.assertEqual(iss.pc, 0x104)
 
 
 if __name__ == "__main__":

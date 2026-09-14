@@ -18,7 +18,7 @@
 - M 扩展覆盖乘法、高半乘法、除法和余数；除零与有符号溢出遵循 RISC-V Unprivileged ISA 定义。
 - A 扩展覆盖 LR/SC 和 AMO；所有原子访问必须按自然对齐宽度执行。
 - 未实现编码产生 illegal-instruction 异常。
-- 指令地址和数据地址的对齐、访问宽度、符号扩展必须由测试明确覆盖。
+- 指令地址和数据地址的对齐、访问宽度、符号扩展必须由测试明确覆盖。普通 load/LR 的未对齐访问产生 load-address-misaligned（cause `4`），普通 store/SC/AMO 产生 store/AMO-address-misaligned（cause `6`）；`mtval` 保存有效地址，且不得发起数据事务、写回目的寄存器或改变 reservation。
 
 ## CSR、陷阱和中断
 

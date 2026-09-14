@@ -53,6 +53,7 @@ module rv64_core (
   logic [2:0]  memory_function;
   logic [2:0]  memory_width;
   logic        memory_unsigned;
+  logic        memory_misaligned;
   logic [63:0] effective_address;
   logic [63:0] immediate;
   immediate_kind_t immediate_kind;
@@ -161,7 +162,7 @@ module rv64_core (
   rv64_atomic_unit atomic_unit (
     .clk(clk),
     .reset(reset),
-    .execute(atomic_valid),
+    .execute(atomic_valid && !memory_misaligned),
     .operation(atomic_operation),
     .word_operation(atomic_word_operation),
     .address(register_a),
@@ -216,6 +217,7 @@ module rv64_core (
     memory_function = funct3;
     memory_width = 3'd0;
     memory_unsigned = 1'b0;
+    memory_misaligned = 1'b0;
     effective_address = '0;
     data_valid = 1'b0;
     data_write = 1'b0;
@@ -348,6 +350,7 @@ module rv64_core (
         data_valid = atomic_valid;
         data_write = atomic_memory_write;
         data_address = register_a;
+        effective_address = register_a;
         data_write_data = atomic_memory_write_data;
         data_write_strobe = atomic_word_operation ? 8'b0000_1111 : 8'b1111_1111;
         writeback_enable = atomic_valid;
@@ -412,6 +415,30 @@ module rv64_core (
       next_program_counter = trap_vector;
     end
 
+    if (instruction_is_memory && !illegal_instruction) begin
+      if (atomic_instruction) begin
+        memory_misaligned = atomic_word_operation ? (effective_address[1:0] != 2'b0) :
+                                                  (effective_address[2:0] != 3'b0);
+      end else begin
+        unique case (memory_width)
+          3'd0: memory_misaligned = 1'b0;
+          3'd1: memory_misaligned = effective_address[0] != 1'b0;
+          3'd2: memory_misaligned = effective_address[1:0] != 2'b0;
+          default: memory_misaligned = effective_address[2:0] != 3'b0;
+        endcase
+      end
+      if (memory_misaligned) begin
+        trap_to_machine = 1'b1;
+        writeback_enable = 1'b0;
+        data_valid = 1'b0;
+        data_write = 1'b0;
+        trap_cause = (instruction_is_store ||
+                      (atomic_instruction && atomic_operation != ATOMIC_LR)) ? 64'd6 : 64'd4;
+        trap_value = effective_address;
+        next_program_counter = trap_vector;
+      end
+    end
+
     if (instruction_fault) begin
       trap_to_machine = 1'b1;
       illegal_instruction = 1'b0;
@@ -422,7 +449,7 @@ module rv64_core (
       next_program_counter = trap_vector;
     end
 
-    if (data_fault && instruction_is_memory) begin
+    if (data_fault && instruction_is_memory && !memory_misaligned) begin
       trap_to_machine = 1'b1;
       illegal_instruction = 1'b0;
       writeback_enable = 1'b0;

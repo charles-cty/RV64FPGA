@@ -32,7 +32,7 @@ uv run python -m unittest discover -s tests
 `xvlog`、`xelab`、`xsim`，并检查日志中的 `SIM PASS`。它不会运行综合、实现、下载或
 flash 编程。
 
-可用的 xsim 回归名为 `alu`、`decoder`、`regfile`、`imm`、`core`、`core_csr`、`core_atomic`、`soc`、`soc_uart`、`soc_irq`、`soc_mmu`、`soc_mmu_fault`、`soc_cache_diff`、`soc_mmu_diff`、`csr`、`atomic`、`cache`、`clint`、`plic`、`uart` 和 `mmu`。`run-core-diff.sh`
+可用的 xsim 回归名为 `alu`、`decoder`、`regfile`、`imm`、`core`、`core_csr`、`core_atomic`、`core_alignment`、`soc`、`soc_uart`、`soc_irq`、`soc_mmu`、`soc_mmu_fault`、`soc_cache_diff`、`soc_mmu_diff`、`csr`、`atomic`、`cache`、`clint`、`plic`、`uart` 和 `mmu`。`run-core-diff.sh`
 会在 `core` xsim 完成后生成独立 ISS 期望 trace，并运行 RTL↔ISS 比较器。
 
 ## 当前状态

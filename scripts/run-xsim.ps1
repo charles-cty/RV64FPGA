@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('alu', 'decoder', 'regfile', 'imm', 'core', 'core_csr', 'core_atomic', 'soc', 'soc_uart', 'soc_irq', 'soc_mmu', 'soc_mmu_fault', 'soc_cache_diff', 'soc_mmu_diff', 'csr', 'atomic', 'cache', 'clint', 'plic', 'uart', 'mmu')]
+    [ValidateSet('alu', 'decoder', 'regfile', 'imm', 'core', 'core_csr', 'core_atomic', 'core_alignment', 'soc', 'soc_uart', 'soc_irq', 'soc_mmu', 'soc_mmu_fault', 'soc_cache_diff', 'soc_mmu_diff', 'csr', 'atomic', 'cache', 'clint', 'plic', 'uart', 'mmu')]
     [string]$Test = 'alu',
     [string]$SourceRoot = (Split-Path -Parent $PSScriptRoot),
     [string]$VivadoBat = 'C:\AMDDesignTools\2026.1\Vivado\bin\vivado.bat',
@@ -49,7 +49,7 @@ try {
     } elseif ($Test -eq 'imm') {
         $sources += @('rtl\rv64_imm_gen.sv', 'sim\tb_rv64_imm_gen.sv')
         $top = 'tb_rv64_imm_gen'
-    } elseif ($Test -eq 'core' -or $Test -eq 'core_csr' -or $Test -eq 'core_atomic') {
+    } elseif ($Test -eq 'core' -or $Test -eq 'core_csr' -or $Test -eq 'core_atomic' -or $Test -eq 'core_alignment') {
         $sources += @(
             'rtl\rv64_alu.sv', 'rtl\rv64_decoder.sv', 'rtl\rv64_imm_gen.sv',
             'rtl\rv64_regfile.sv', 'rtl\rv64_csr.sv', 'rtl\rv64_atomic_unit.sv', 'rtl\rv64_core.sv'
@@ -60,9 +60,12 @@ try {
         } elseif ($Test -eq 'core_csr') {
             $sources += 'sim\tb_rv64_core_csr.sv'
             $top = 'tb_rv64_core_csr'
-        } else {
+        } elseif ($Test -eq 'core_atomic') {
             $sources += 'sim\tb_rv64_core_atomic.sv'
             $top = 'tb_rv64_core_atomic'
+        } else {
+            $sources += 'sim\tb_rv64_core_alignment.sv'
+            $top = 'tb_rv64_core_alignment'
         }
     } elseif ($Test -eq 'soc' -or $Test -eq 'soc_uart' -or $Test -eq 'soc_irq' -or $Test -eq 'soc_mmu' -or $Test -eq 'soc_mmu_fault' -or $Test -eq 'soc_cache_diff' -or $Test -eq 'soc_mmu_diff') {
         $sources += @(

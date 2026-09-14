@@ -40,6 +40,17 @@ class IllegalInstruction(ValueError):
     pass
 
 
+class MisalignedAddress(ValueError):
+    """Raised when a naturally aligned load or store cannot be executed."""
+
+    def __init__(self, address: int, width: int, is_store: bool) -> None:
+        self.address = unsigned(address, 64)
+        self.width = width
+        self.cause = 6 if is_store else 4
+        access_kind = "store" if is_store else "load"
+        super().__init__(f"misaligned {access_kind} address: {self.address:#x} for {width} bytes")
+
+
 class RV64IMAISS:
     """Independent sequential model, expanded alongside the CPU commit interface."""
 
@@ -57,6 +68,11 @@ class RV64IMAISS:
     def _store(self, address: int, value: int, width: int) -> None:
         for offset in range(width):
             self.memory[address + offset] = (value >> (offset * 8)) & 0xFF
+
+    @staticmethod
+    def _require_natural_alignment(address: int, width: int, is_store: bool) -> None:
+        if address & (width - 1):
+            raise MisalignedAddress(address, width, is_store)
 
     @staticmethod
     def _branch_immediate(instruction: int) -> int:
@@ -132,12 +148,17 @@ class RV64IMAISS:
             if funct3 not in (0, 1, 2, 3, 4, 5, 6):
                 raise IllegalInstruction(f"unsupported load funct3: {instruction:#010x}")
             width = {0: 1, 1: 2, 2: 4, 3: 8, 4: 1, 5: 2, 6: 4}[funct3]
-            write_value = self._write_register(rd, self._load(lhs + signed(instruction >> 20, 12), width, funct3 in (4, 5, 6)))
+            address = unsigned(lhs + signed(instruction >> 20, 12), 64)
+            self._require_natural_alignment(address, width, False)
+            write_value = self._write_register(rd, self._load(address, width, funct3 in (4, 5, 6)))
         elif opcode == 0x23:
             if funct3 not in (0, 1, 2, 3):
                 raise IllegalInstruction(f"unsupported store funct3: {instruction:#010x}")
             immediate = signed(((instruction >> 25) << 5) | ((instruction >> 7) & 0x1F), 12)
-            self._store(lhs + immediate, self._read_register(rs2), {0: 1, 1: 2, 2: 4, 3: 8}[funct3])
+            width = {0: 1, 1: 2, 2: 4, 3: 8}[funct3]
+            address = unsigned(lhs + immediate, 64)
+            self._require_natural_alignment(address, width, True)
+            self._store(address, self._read_register(rs2), width)
             write_value = None
         elif opcode == 0x13:
             immediate = signed(instruction >> 20, 12)
