@@ -1,0 +1,145 @@
+`timescale 1ns / 1ps
+
+module tb_rv64_bram_soc_mmu_diff;
+  logic clk;
+  logic reset;
+  logic [2:0] led;
+  logic uart_tx;
+  integer failures;
+  integer index;
+  integer trace_file;
+  integer commit_count;
+  integer cycle_count;
+
+  rv64_bram_soc #(.UART_BIT_CYCLES(2)) dut (.*);
+  always #5 clk = ~clk;
+
+  function automatic logic [31:0] encode_i(
+    input logic [11:0] immediate,
+    input logic [4:0] source_register,
+    input logic [2:0] function_code,
+    input logic [4:0] destination_register,
+    input logic [6:0] opcode
+  );
+    encode_i = {immediate, source_register, function_code, destination_register, opcode};
+  endfunction
+
+  function automatic logic [31:0] encode_s(
+    input logic [11:0] immediate,
+    input logic [4:0] source_register,
+    input logic [4:0] data_register,
+    input logic [2:0] function_code,
+    input logic [6:0] opcode
+  );
+    encode_s = {immediate[11:5], data_register, source_register, function_code,
+                immediate[4:0], opcode};
+  endfunction
+
+  function automatic logic [31:0] encode_u(
+    input logic [19:0] immediate,
+    input logic [4:0] destination_register
+  );
+    encode_u = {immediate, destination_register, 7'b0110111};
+  endfunction
+
+  function automatic logic [63:0] make_pte(
+    input logic [43:0] ppn,
+    input logic [7:0] flags
+  );
+    make_pte = {10'b0, ppn, 2'b0, flags};
+  endfunction
+
+  task automatic write_trace;
+    begin
+      if (dut.core.commit_rd_write) begin
+        $fdisplay(trace_file,
+                  "{\"pc\":\"0x%016h\",\"instruction\":\"0x%08h\",\"next_pc\":\"0x%016h\",\"rd\":%0d,\"rd_value\":\"0x%016h\"}",
+                  dut.core.commit_pc, dut.core.commit_instruction, dut.core.commit_next_pc,
+                  dut.core.commit_rd, dut.core.commit_rd_value);
+      end else begin
+        $fdisplay(trace_file,
+                  "{\"pc\":\"0x%016h\",\"instruction\":\"0x%08h\",\"next_pc\":\"0x%016h\",\"rd\":%0d,\"rd_value\":null}",
+                  dut.core.commit_pc, dut.core.commit_instruction, dut.core.commit_next_pc,
+                  dut.core.commit_rd);
+      end
+    end
+  endtask
+
+  initial begin
+    clk = 1'b0;
+    reset = 1'b1;
+    failures = 0;
+    commit_count = 0;
+    trace_file = $fopen("rtl_trace.jsonl", "w");
+    if (trace_file == 0) begin
+      $display("SIM FAIL: could not open rtl_trace.jsonl");
+      $fatal(1);
+    end
+
+    #1;
+    for (index = 0; index < 16384; index = index + 1) begin
+      dut.instruction_memory[index] = 32'h0000_0013;
+    end
+    for (index = 0; index < 8192; index = index + 1) begin
+      dut.data_memory[index] = '0;
+    end
+
+    dut.instruction_memory[0] = encode_u(20'h80000, 5'd1);
+    dut.instruction_memory[1] = encode_i(12'd32, 5'd1, 3'b001, 5'd1, 7'b0010011);
+    dut.instruction_memory[2] = encode_i(12'd1, 5'd1, 3'b000, 5'd1, 7'b0010011);
+    dut.instruction_memory[3] = encode_i(12'h180, 5'd1, 3'b001, 5'd0, 7'b1110011);
+    dut.instruction_memory[4] = encode_i(12'd1, 5'd0, 3'b000, 5'd1, 7'b0010011);
+    dut.instruction_memory[5] = encode_i(12'd11, 5'd1, 3'b001, 5'd1, 7'b0010011);
+    dut.instruction_memory[6] = encode_i(12'h300, 5'd1, 3'b001, 5'd0, 7'b1110011);
+    dut.instruction_memory[7] = encode_i(12'h100, 5'd0, 3'b000, 5'd1, 7'b0010011);
+    dut.instruction_memory[8] = encode_i(12'h341, 5'd1, 3'b001, 5'd0, 7'b1110011);
+    dut.instruction_memory[9] = 32'h3020_0073;
+
+    dut.instruction_memory[64] = encode_i(12'd2, 5'd0, 3'b000, 5'd2, 7'b0010011);
+    dut.instruction_memory[65] = encode_u(20'd2, 5'd3);
+    dut.instruction_memory[66] = encode_s(12'd0, 5'd3, 5'd2, 3'b011, 7'b0100011);
+    dut.instruction_memory[67] = encode_i(12'd0, 5'd3, 3'b011, 5'd4, 7'b0000011);
+    dut.instruction_memory[68] = 32'h0000_006f;
+
+    dut.data_memory[512] = make_pte(44'd2, 8'h01);
+    dut.data_memory[1024] = make_pte(44'd3, 8'h01);
+    dut.data_memory[1536] = make_pte(44'd0, 8'h49);
+    dut.data_memory[1538] = make_pte(44'd4, 8'hc7);
+
+    @(posedge clk);
+    #1;
+    reset = 1'b0;
+
+    for (cycle_count = 0; cycle_count < 240 && commit_count < 15;
+         cycle_count = cycle_count + 1) begin
+      @(posedge clk);
+      #1;
+      if (dut.core.commit_valid) begin
+        write_trace();
+        commit_count = commit_count + 1;
+      end
+    end
+
+    if (commit_count != 15) begin
+      $display("FAIL expected 15 commits, got %0d", commit_count);
+      failures = failures + 1;
+    end
+    if (dut.core.privilege_mode !== 2'b01 ||
+        dut.core.register_file.registers[4] !== 64'd2 ||
+        dut.data_memory[2048] !== 64'd2 ||
+        dut.core.commit_trap_valid !== 1'b0) begin
+      $display("FAIL Sv39 final state privilege=%b x4=%h memory=%h trap=%b",
+               dut.core.privilege_mode, dut.core.register_file.registers[4],
+               dut.data_memory[2048], dut.core.commit_trap_valid);
+      failures = failures + 1;
+    end
+
+    $fclose(trace_file);
+    if (failures != 0) begin
+      $display("SIM FAIL: %0d SoC MMU differential checks failed", failures);
+      $fatal(1);
+    end
+    $display("SIM PASS: rv64_bram_soc Sv39 differential regression");
+    $finish;
+  end
+endmodule

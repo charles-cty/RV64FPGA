@@ -31,6 +31,14 @@ class RV64IMAISSTest(unittest.TestCase):
         self.assertEqual(commit.rd_value, 0xffff_ffff_8000_0000)
         self.assertEqual(iss.registers[2], 0xffff_ffff_8000_0000)
 
+    def test_slli_accepts_a_six_bit_shift_amount(self) -> None:
+        iss = RV64IMAISS()
+        iss.registers[1] = 1
+        commit = iss.step(encode_i_type(rd=2, rs1=1, immediate=32, funct3=1))
+
+        self.assertEqual(commit.rd_value, 1 << 32)
+        self.assertEqual(iss.registers[2], 1 << 32)
+
     def test_signed_division_truncates_toward_zero(self) -> None:
         iss = RV64IMAISS()
         iss.registers[1] = (-7) & ((1 << 64) - 1)

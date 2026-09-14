@@ -50,7 +50,7 @@ interrupt 边界。
 `./scripts/run-xsim.sh mmu` 验证独立 Sv39 walker 的三级页表遍历、4 KiB/2 MiB/1 GiB
 映射、R/W/X/U/A/D 权限、S-mode SUM、非规范虚拟地址、无效 PTE、超页对齐、Bare
 直通、小型 TLB 命中和按地址 `SFENCE.VMA`。该回归覆盖 MMU 单元本身；SoC 接入另由
-`soc_mmu` 回归验证，数据 cache 尚未实现。
+`soc_mmu` 回归验证，数据 cache 由独立 `cache` 回归验证。
 
 核心的 `csr` 回归另外验证 M/S/U 委派 trap、`sret` 和动态 trap vector；取指 `ready`
 握手在无 MMU 的核心单元回归中固定为 1；翻译停顿和完成保持由 `soc_mmu` 回归覆盖。
@@ -59,6 +59,9 @@ interrupt 边界。
 
 `./scripts/run-xsim.sh soc_mmu` 验证 SoC 双 MMU 的 Sv39 取指和数据翻译、S-mode `mret`
 切换、虚拟 store/load、物理 BRAM 写入以及翻译完成握手。
+
+`./scripts/run-xsim.sh soc_mmu_diff` 导出基础 Sv39 SoC 的 RTL 提交 trace；
+`./scripts/run-soc-mmu-diff.sh` 以独立 PTE walker 和 ISS 生成并比较 15 条提交。
 
 `./scripts/run-xsim.sh cache` 验证直映写通数据 cache 的读 miss 填充、读 hit、写 hit 和
 字节写掩码更新。

@@ -47,6 +47,8 @@ class RV64IMAISS:
         self.pc = unsigned(start_pc, 64)
         self.registers = [0] * 32
         self.memory: dict[int, int] = {}
+        self.csrs: dict[int, int] = {}
+        self.privilege = 3
 
     def _load(self, address: int, width: int, is_unsigned: bool) -> int:
         raw = sum(self.memory.get(address + offset, 0) << (offset * 8) for offset in range(width))
@@ -77,6 +79,12 @@ class RV64IMAISS:
         result = unsigned(value, 64)
         self.registers[index] = result
         return result
+
+    def _read_csr(self, address: int) -> int:
+        return self.csrs.get(address, 0)
+
+    def _write_csr(self, address: int, value: int) -> None:
+        self.csrs[address] = unsigned(value, 64)
 
     def step(self, instruction: int) -> Commit:
         instruction = unsigned(instruction, 32)
@@ -145,11 +153,11 @@ class RV64IMAISS:
                 write_value = self._write_register(rd, lhs | unsigned(immediate, 64))
             elif funct3 == 0x7:
                 write_value = self._write_register(rd, lhs & unsigned(immediate, 64))
-            elif funct3 == 0x1 and funct7 == 0x00:
+            elif funct3 == 0x1 and (instruction >> 26) == 0x00:
                 write_value = self._write_register(rd, lhs << ((instruction >> 20) & 0x3F))
-            elif funct3 == 0x5 and funct7 == 0x00:
+            elif funct3 == 0x5 and (instruction >> 26) == 0x00:
                 write_value = self._write_register(rd, lhs >> ((instruction >> 20) & 0x3F))
-            elif funct3 == 0x5 and funct7 == 0x20:
+            elif funct3 == 0x5 and (instruction >> 26) == 0x10:
                 write_value = self._write_register(rd, signed(lhs, 64) >> ((instruction >> 20) & 0x3F))
             else:
                 raise IllegalInstruction(f"unsupported OP-IMM: {instruction:#010x}")
@@ -168,6 +176,18 @@ class RV64IMAISS:
         elif opcode in (0x33, 0x3B):
             rhs = self._read_register(rs2)
             write_value = self._execute_register(rd, funct3, funct7, lhs, rhs, 64 if opcode == 0x33 else 32)
+        elif opcode == 0x73:
+            if instruction == 0x30200073:
+                mstatus = self._read_csr(0x300)
+                next_pc = self._read_csr(0x341)
+                self.privilege = (mstatus >> 11) & 0x3
+                self._write_csr(0x300, mstatus & ~(0x3 << 11))
+                write_value = None
+            elif funct3 == 0x1:
+                write_value = self._write_register(rd, self._read_csr(instruction >> 20))
+                self._write_csr(instruction >> 20, lhs)
+            else:
+                raise IllegalInstruction(f"unsupported SYSTEM instruction: {instruction:#010x}")
         else:
             raise IllegalInstruction(f"unsupported opcode: {instruction:#010x}")
 

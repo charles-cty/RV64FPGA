@@ -41,6 +41,10 @@ read hit、分支和可见内存写入的程序，再将 RTL 提交 trace 与独
 该回归使用 Bare 物理地址访问，证明 cache 造成的内部等待不改变提交顺序；它不替代
 Sv39 翻译、页故障或特权 CSR 的 differential 覆盖。
 
+`scripts/run-soc-mmu-diff.sh` 使用独立 PTE walker、最小 CSR/MRET 状态和同一程序的
+RTL trace 比较 M-mode 配置、进入 S-mode 后的 Sv39 取指及虚拟数据读写。页故障与权限
+拒绝路径仍由独立 MMU 回归覆盖，后续再扩大为完整 differential 场景。
+
 运行入口：
 
 ```bash
