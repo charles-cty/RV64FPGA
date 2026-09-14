@@ -33,7 +33,7 @@ xsim --nolog --runall --log sim.log tb_snap
 ./scripts/run-xsim.sh alu
 ```
 
-译码器、寄存器堆、立即数、核心和 CSR 回归分别使用 `./scripts/run-xsim.sh decoder`、
+译码器、寄存器堆、立即数、核心、CSR 和原子单元回归分别使用 `./scripts/run-xsim.sh decoder`、
 `./scripts/run-xsim.sh regfile`、`./scripts/run-xsim.sh imm`、`./scripts/run-xsim.sh core`
-和 `./scripts/run-xsim.sh csr`。这些回归均要求日志出现 `SIM PASS`，并在发现
-`SIM FAIL` 时返回失败。
+、`./scripts/run-xsim.sh csr` 和 `./scripts/run-xsim.sh atomic`。这些回归均要求日志出现
+`SIM PASS`，并在发现 `SIM FAIL` 时返回失败。

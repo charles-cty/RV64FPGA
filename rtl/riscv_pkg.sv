@@ -37,4 +37,18 @@ package riscv_pkg;
     ALU_REMW,
     ALU_REMUW
   } alu_op_t;
+
+  typedef enum logic [3:0] {
+    ATOMIC_LR,
+    ATOMIC_SC,
+    ATOMIC_SWAP,
+    ATOMIC_ADD,
+    ATOMIC_XOR,
+    ATOMIC_AND,
+    ATOMIC_OR,
+    ATOMIC_MIN,
+    ATOMIC_MAX,
+    ATOMIC_MINU,
+    ATOMIC_MAXU
+  } atomic_op_t;
 endpackage
