@@ -48,5 +48,5 @@ PLIC 外部源接线、DDR3 及板级工程尚未实现；双 MMU 与直映 writ
 已接入 BRAM SoC 并通过 xsim 集成回归，cacheable BRAM 数据路径已有 RTL↔ISS
 differential；基础 Sv39/MMU 核心 differential 已覆盖；execute-only 数据页的 S-mode
 fetch/load/store page fault 已有独立 Sv39 walker↔RTL 精确 trap differential，S-mode
-SUM 和 U-mode 对 U/S 页的数据权限路径已覆盖；S-mode 对 U 页取指仍待扩展。
+SUM、U-mode 和 S-mode 对 U/S 页的权限边界已由 SoC differential 覆盖。
 任何综合、实现、下载和 flash 编程都必须先满足上板前确认门。

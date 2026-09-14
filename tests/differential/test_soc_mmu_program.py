@@ -12,7 +12,7 @@ from soc_mmu_fault_program import generate_fetch_trace, generate_load_trace, gen
 from soc_mmu_program import generate_trace, make_pte
 from soc_mmu_sum_program import DATA_VALUE, generate_sum_off_trace, generate_sum_on_trace
 from soc_mmu_user_program import DATA_VALUE as USER_DATA_VALUE
-from soc_mmu_user_program import generate_supervisor_data_trace, generate_user_data_trace
+from soc_mmu_user_program import generate_supervisor_data_trace, generate_supervisor_fetch_trace, generate_user_data_trace
 from sv39 import PageFault, Sv39Reference
 
 
@@ -111,6 +111,16 @@ class SocMmuProgramTraceTest(unittest.TestCase):
         self.assertEqual(allowed_trace[-1]["rd_value"], f"0x{USER_DATA_VALUE:016x}")
         self.assertIsNone(allowed_trace[-1]["trap_cause"])
         self.assertEqual(allowed_trace[-1]["privilege"], 0)
+
+    def test_supervisor_fetch_rejects_user_pages_even_with_sum_support(self) -> None:
+        trace = generate_supervisor_fetch_trace()
+
+        self.assertEqual(len(trace), 13)
+        self.assertEqual(trace[-1]["pc"], "0x0000000000000100")
+        self.assertIsNone(trace[-1]["instruction"])
+        self.assertEqual(trace[-1]["trap_cause"], "0x000000000000000c")
+        self.assertEqual(trace[-1]["trap_value"], "0x0000000000000100")
+        self.assertEqual(trace[-1]["privilege"], 3)
 
 
 if __name__ == "__main__":

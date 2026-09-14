@@ -28,6 +28,11 @@ MACHINE_PROGRAM = {
     0x028: 0x34109073,
     0x02C: 0x30200073,
 }
+MACHINE_PROGRAM_SUPERVISOR = MACHINE_PROGRAM | {
+    0x018: 0x00100093,
+    0x01C: 0x00B09093,
+    0x020: 0x30009073,
+}
 USER_PROGRAM = {
     0x100: 0x000021B7,
     0x104: 0x0001B203,
@@ -48,7 +53,10 @@ def format_commit(commit: Commit, privilege: int) -> dict[str, int | str | None]
     }
 
 
-def generate_phase(data_page_flags: int) -> list[dict[str, int | str | None]]:
+def generate_phase(
+    data_page_flags: int,
+    machine_program: dict[int, int] = MACHINE_PROGRAM,
+) -> list[dict[str, int | str | None]]:
     physical_memory = Sv39Reference()
     physical_memory.write_u64(0x1000, make_pte(2, 0x01))
     physical_memory.write_u64(0x2000, make_pte(3, 0x01))
@@ -62,7 +70,7 @@ def generate_phase(data_page_flags: int) -> list[dict[str, int | str | None]]:
         instruction: int | None = None
         try:
             if iss.privilege == 3:
-                instruction = MACHINE_PROGRAM[iss.pc]
+                instruction = machine_program[iss.pc]
             else:
                 iss._physical_address(iss.pc, "fetch")
                 instruction = USER_PROGRAM[iss.pc]
@@ -94,8 +102,12 @@ def generate_user_data_trace() -> list[dict[str, int | str | None]]:
     return generate_phase(0x53)
 
 
+def generate_supervisor_fetch_trace() -> list[dict[str, int | str | None]]:
+    return generate_phase(0x53, MACHINE_PROGRAM_SUPERVISOR)
+
+
 def generate_trace() -> list[dict[str, int | str | None]]:
-    return generate_supervisor_data_trace() + generate_user_data_trace()
+    return generate_supervisor_data_trace() + generate_user_data_trace() + generate_supervisor_fetch_trace()
 
 
 def main() -> int:

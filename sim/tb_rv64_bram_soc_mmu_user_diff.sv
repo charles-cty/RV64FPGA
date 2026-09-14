@@ -35,11 +35,18 @@ module tb_rv64_bram_soc_mmu_user_diff;
   task automatic write_trace;
     begin
       if (dut.core.commit_trap_valid) begin
-        $fdisplay(trace_file,
+        if (dut.core.commit_trap_cause == 64'd12) begin
+          $fdisplay(trace_file,
+          "{\"pc\":\"0x%016h\",\"instruction\":null,\"next_pc\":\"0x%016h\",\"rd\":0,\"rd_value\":null,\"trap_cause\":\"0x%016h\",\"trap_value\":\"0x%016h\",\"privilege\":%0d}",
+          dut.core.commit_pc, dut.core.commit_next_pc, dut.core.commit_trap_cause,
+          dut.core.csr_file.mtval, dut.core.privilege_mode);
+        end else begin
+          $fdisplay(trace_file,
           "{\"pc\":\"0x%016h\",\"instruction\":\"0x%08h\",\"next_pc\":\"0x%016h\",\"rd\":%0d,\"rd_value\":null,\"trap_cause\":\"0x%016h\",\"trap_value\":\"0x%016h\",\"privilege\":%0d}",
           dut.core.commit_pc, dut.core.commit_instruction, dut.core.commit_next_pc,
           dut.core.commit_rd, dut.core.commit_trap_cause, dut.core.csr_file.mtval,
           dut.core.privilege_mode);
+        end
       end else if (dut.core.commit_rd_write) begin
         $fdisplay(trace_file,
           "{\"pc\":\"0x%016h\",\"instruction\":\"0x%08h\",\"next_pc\":\"0x%016h\",\"rd\":%0d,\"rd_value\":\"0x%016h\",\"trap_cause\":null,\"trap_value\":null,\"privilege\":%0d}",
@@ -126,6 +133,24 @@ module tb_rv64_bram_soc_mmu_user_diff;
       $display("FAIL U allow commits=%0d privilege=%b x4=%h trap=%b",
         commit_count, dut.core.privilege_mode, dut.core.register_file.registers[4],
         dut.core.commit_trap_valid);
+      failures = failures + 1;
+    end
+
+    @(negedge clk);
+    reset = 1'b1;
+    dut.instruction_memory[6] = encode_i(12'd1, 5'd0, 3'b000, 5'd1, 7'b0010011);
+    dut.instruction_memory[7] = encode_i(12'd11, 5'd1, 3'b001, 5'd1, 7'b0010011);
+    dut.instruction_memory[8] = encode_i(12'h300, 5'd1, 3'b001, 5'd0, 7'b1110011);
+    @(posedge clk);
+    #1;
+    reset = 1'b0;
+    run_until(41);
+    if (commit_count != 41 || dut.core.privilege_mode !== 2'b11 ||
+        dut.core.csr_file.mcause !== 64'd12 || dut.core.csr_file.mtval !== 64'h100 ||
+        dut.core.csr_file.mepc !== 64'h100) begin
+      $display("FAIL S fetch denial commits=%0d privilege=%b cause=%h value=%h pc=%h",
+        commit_count, dut.core.privilege_mode, dut.core.csr_file.mcause,
+        dut.core.csr_file.mtval, dut.core.csr_file.mepc);
       failures = failures + 1;
     end
 

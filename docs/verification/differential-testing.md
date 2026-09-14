@@ -55,7 +55,8 @@ RTL trace 比较 M-mode 配置、进入 S-mode 后的 Sv39 取指及虚拟数据
 
 `scripts/run-soc-mmu-user-diff.sh` 在 user executable 代码页运行 U-mode `ld`：先对
 supervisor-only 数据页比较 load page fault，再将同一数据页设为 user 并比较成功 load。
-该场景同时证明 U-mode 取指需要 U 权限；仅 S-mode 对 U 页的 fetch 拒绝仍待纳入 differential。
+该场景同时证明 U-mode 取指需要 U 权限，并比较 S-mode 对同一 U 页取指的 instruction page
+fault；该拒绝路径不受 SUM 影响。
 
 运行入口：
 
