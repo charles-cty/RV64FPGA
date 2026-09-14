@@ -30,12 +30,12 @@ uv run python -m unittest discover -s tests
 `xvlog`、`xelab`、`xsim`，并检查日志中的 `SIM PASS`。它不会运行综合、实现、下载或
 flash 编程。
 
-可用的 xsim 回归名为 `alu`、`decoder`、`regfile`、`imm` 和 `core`。`run-core-diff.sh`
+可用的 xsim 回归名为 `alu`、`decoder`、`regfile`、`imm`、`core` 和 `csr`。`run-core-diff.sh`
 会在 `core` xsim 完成后生成独立 ISS 期望 trace，并运行 RTL↔ISS 比较器。
 
 ## 当前状态
 
-M0 工程骨架和首个 M1 增量已建立：RTL ALU、译码、寄存器堆、立即数生成器、单周期
-CPU+BRAM 原型、独立 Python ISS、trace 比较器和 xsim 回归均已纳入版本控制。三级
-流水线、CSR/MMU、A 扩展、DDR3 及板级工程尚未实现。
+M0 工程骨架和 M1/M2 基础增量已建立：RTL ALU、译码、寄存器堆、立即数生成器、单周期
+CPU+BRAM 原型、独立 Python ISS、trace 比较器和基础 CSR 单元均已纳入版本控制。三级
+流水线、CSR 与核心集成、MMU/cache、A 扩展、DDR3 及板级工程尚未实现。
 任何综合、实现、下载和 flash 编程都必须先满足上板前确认门。
