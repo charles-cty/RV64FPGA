@@ -34,9 +34,9 @@
 
 仿真专用 commit trace 不进入功能路径。综合版本提供 LED 心跳、UART 状态和可选 VIO probes。JTAG-AXI bench 使用 `clk_50` 域 BRAM 往返验证总线。
 
-当前 `rtl/rv64_bram_soc.sv` 将核心、片上指令/数据 BRAM 和 `GPIO/LED` (`0x1000_1000`)
-连成可运行的仿真顶层。该顶层只用于 xsim 验证，尚未添加板级时钟约束，也不构成综合
-或上板通过证据。
+当前 `rtl/rv64_bram_soc.sv` 将核心、片上指令/数据 BRAM、UART (`0x1000_0000`) 和
+`GPIO/LED` (`0x1000_1000`) 连成可运行的仿真顶层。该顶层只用于 xsim 验证，尚未添加
+板级时钟约束，也不构成综合或上板通过证据。
 
 `rtl/rv64_clint.sv` 的单核 MMIO 偏移遵循标准布局：`msip=0x0000`、`mtimecmp=0x4000`
 和 `mtime=0xbff8`；其 timer/software interrupt 输出尚未接入 SoC 地址译码。

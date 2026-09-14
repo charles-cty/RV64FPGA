@@ -4,6 +4,7 @@ module tb_rv64_bram_soc;
   logic clk;
   logic reset;
   logic [2:0] led;
+  logic uart_tx;
   integer failures;
 
   rv64_bram_soc dut (.*);
