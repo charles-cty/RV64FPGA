@@ -61,6 +61,18 @@ the core receives a precise load access fault (`mcause=13`, `mepc=0x8`,
 `mtval=0`) without a destination-register write. The same error signal will
 later originate from the MIG wrapper rather than this model.
 
+`rtl/rv64_ddr3_axi_adapter.sv` is the first non-vendor portion of that wrapper.
+It operates in the future MIG UI clock domain and permits one request at a
+time. Because the selected MIG AXI interface is 512 bits wide and disables
+narrow bursts, each 8-byte cache transaction becomes a one-beat, aligned
+64-byte AXI burst: reads select the addressed 64-bit lane from `RDATA`, and
+writes place data and byte strobes only in that lane. It rejects uncalibrated,
+misaligned, and out-of-range transactions before issuing AXI traffic and turns
+AXI response errors into the CPU-side error response. It intentionally does
+not include the `clk_50`/`ui_clk` asynchronous bridge or instantiate MIG.
+`ddr3_axi_adapter` xsim verifies delayed independent AW/W/AR handshakes, lane
+placement, response errors, range rejection, and reset during a transaction.
+
 Before hardware work, xsim must connect this endpoint or a protocol-equivalent
 behavioral model to the future adapter. Required integration regressions are:
 

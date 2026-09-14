@@ -38,6 +38,10 @@ S-mode 对 U 页取指拒绝已覆盖。随机化和 cache/TLB 交互 differenti
 `ddr3_model` xsim 回归验证 M5 行为 DDR3 endpoint 的延迟、字节写掩码、读后写顺序、
 未校准 error 和 pending reset。它不替代 MIG 或板级 DDR3 验证。
 
+`ddr3_axi_adapter` xsim 回归验证单请求 8-byte cache memory contract 到 512-bit
+MIG AXI beat 的地址、lane、写掩码、response error 和 reset 行为；它不包含 CDC 或
+厂商 MIG IP。
+
 `soc_ddr3_model` xsim 回归将该 endpoint 接入 cache 外部内存端口，验证 write-through、
 延迟 read miss 和后续 cache hit 的架构结果。
 

@@ -87,6 +87,10 @@ fault。
 `./scripts/run-xsim.sh cache` 验证直映写通数据 cache 的读 miss 填充、读 hit、写 hit 和
 字节写掩码更新。
 
+`./scripts/run-xsim.sh ddr3_axi_adapter` 验证 DDR3 UI-domain AXI adapter 将一个
+8-byte cache transaction 映射为一个对齐的 512-bit AXI beat，并检查读写 lane、AXI
+错误和 pending reset。它不调用 MIG 或综合。
+
 `./scripts/run-xsim.sh soc_cache_diff` 导出 cacheable BRAM SoC 的 RTL 提交 trace；
 `./scripts/run-soc-cache-diff.sh` 再以独立 ISS 生成并比较完整期望 trace。
 
