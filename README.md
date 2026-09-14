@@ -29,10 +29,11 @@ uv run python -m unittest discover -s tests
 `xvlog`、`xelab`、`xsim`，并检查日志中的 `SIM PASS`。它不会运行综合、实现、下载或
 flash 编程。
 
-可用的 xsim 回归名为 `alu`、`decoder`、`regfile` 和 `imm`。
+可用的 xsim 回归名为 `alu`、`decoder`、`regfile`、`imm` 和 `core`。
 
 ## 当前状态
 
-M0 工程骨架和首个 M1 增量已建立：RTL ALU、独立 Python ISS、ISS 单元测试和 xsim
-ALU 回归均已纳入版本控制。CPU 流水线、存储器、CSR/MMU、DDR3 及板级工程尚未实现。
+M0 工程骨架和首个 M1 增量已建立：RTL ALU、译码、寄存器堆、立即数生成器、单周期
+CPU+BRAM 原型、独立 Python ISS、trace 比较器和 xsim 回归均已纳入版本控制。三级
+流水线、CSR/MMU、A 扩展、DDR3 及板级工程尚未实现。
 任何综合、实现、下载和 flash 编程都必须先满足上板前确认门。
