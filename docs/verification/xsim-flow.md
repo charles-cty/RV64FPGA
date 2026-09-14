@@ -60,6 +60,9 @@ interrupt 边界。
 `./scripts/run-xsim.sh soc_mmu` 验证 SoC 双 MMU 的 Sv39 取指和数据翻译、S-mode `mret`
 切换、虚拟 store/load、物理 BRAM 写入以及翻译完成握手。
 
+`./scripts/run-xsim.sh soc_mmu_fault` 验证 S-mode 对 execute-only 页 load 时触发
+精确 load page fault，并保存 `mepc`、`mcause`、`mtval` 和 MPP 后跳转至 M-mode handler。
+
 `./scripts/run-xsim.sh soc_mmu_diff` 导出基础 Sv39 SoC 的 RTL 提交 trace；
 `./scripts/run-soc-mmu-diff.sh` 以独立 PTE walker 和 ISS 生成并比较 15 条提交。
 
