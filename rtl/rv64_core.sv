@@ -17,6 +17,11 @@ module rv64_core (
   output logic        commit_rd_write,
   output logic [4:0]  commit_rd,
   output logic [63:0] commit_rd_value,
+  output logic        commit_csr_write,
+  output logic [11:0] commit_csr_address,
+  output logic [63:0] commit_csr_value,
+  output logic        commit_trap_valid,
+  output logic [63:0] commit_trap_cause,
   output logic        illegal_instruction
 );
   import riscv_pkg::*;
@@ -43,6 +48,22 @@ module rv64_core (
   logic [63:0] alu_rhs;
   logic [63:0] alu_result;
   logic        decoded_illegal;
+  logic [11:0] csr_read_address;
+  logic [63:0] csr_read_data;
+  logic        csr_write_enable;
+  logic [11:0] csr_write_address;
+  logic [63:0] csr_write_value;
+  logic        return_from_machine;
+  logic        trap_to_machine;
+  logic [63:0] trap_cause;
+  logic        system_instruction;
+  logic        atomic_instruction;
+  logic        atomic_word_operation;
+  logic        atomic_valid;
+  logic        atomic_memory_write;
+  logic [63:0] atomic_memory_write_data;
+  logic [63:0] atomic_result;
+  atomic_op_t  atomic_operation;
 
   logic [6:0] opcode;
   logic [4:0] rd;
@@ -83,6 +104,39 @@ module rv64_core (
     .result(alu_result)
   );
 
+  rv64_csr csr_file (
+    .clk(clk),
+    .reset(reset),
+    .read_address(csr_read_address),
+    .read_data(csr_read_data),
+    .write_enable(csr_write_enable),
+    .write_address(csr_write_address),
+    .write_data(csr_write_value),
+    .trap_to_machine(trap_to_machine),
+    .trap_pc(program_counter),
+    .trap_cause(trap_cause),
+    .trap_value({32'b0, instruction_data}),
+    .current_privilege(2'b11),
+    .return_from_machine(return_from_machine)
+  );
+
+  rv64_atomic_unit atomic_unit (
+    .clk(clk),
+    .reset(reset),
+    .execute(atomic_valid),
+    .operation(atomic_operation),
+    .word_operation(atomic_word_operation),
+    .address(register_a),
+    .source_data(register_b),
+    .memory_read_data(data_read_data),
+    .memory_ready(data_ready),
+    .memory_valid(),
+    .memory_write(atomic_memory_write),
+    .memory_write_data(atomic_memory_write_data),
+    .result(atomic_result),
+    .sc_success()
+  );
+
   assign instruction_address = program_counter;
 
   always_comb begin
@@ -97,6 +151,18 @@ module rv64_core (
     writeback_value = alu_result;
     writeback_enable = 1'b0;
     writeback_address = rd;
+    system_instruction = opcode == 7'b1110011;
+    atomic_instruction = opcode == 7'b0101111;
+    atomic_word_operation = funct3 == 3'b010;
+    atomic_operation = ATOMIC_LR;
+    atomic_valid = 1'b0;
+    csr_read_address = 12'h305;
+    csr_write_enable = 1'b0;
+    csr_write_address = instruction_data[31:20];
+    csr_write_value = '0;
+    return_from_machine = 1'b0;
+    trap_to_machine = 1'b0;
+    trap_cause = 64'd2;
     next_program_counter = program_counter + 64'd4;
     instruction_is_memory = 1'b0;
     instruction_is_store = 1'b0;
@@ -214,10 +280,82 @@ module rv64_core (
         instruction_is_control_transfer = 1'b1;
         illegal_instruction = funct3 != 3'b000;
       end
+      7'b0101111: begin
+        instruction_is_memory = 1'b1;
+        illegal_instruction = !((funct3 == 3'b010) || (funct3 == 3'b011));
+        unique case (instruction_data[31:27])
+          5'b00010: atomic_operation = ATOMIC_LR;
+          5'b00011: atomic_operation = ATOMIC_SC;
+          5'b00001: atomic_operation = ATOMIC_SWAP;
+          5'b00000: atomic_operation = ATOMIC_ADD;
+          5'b00100: atomic_operation = ATOMIC_XOR;
+          5'b01100: atomic_operation = ATOMIC_AND;
+          5'b01000: atomic_operation = ATOMIC_OR;
+          5'b10000: atomic_operation = ATOMIC_MIN;
+          5'b10100: atomic_operation = ATOMIC_MAX;
+          5'b11000: atomic_operation = ATOMIC_MINU;
+          5'b11100: atomic_operation = ATOMIC_MAXU;
+          default: illegal_instruction = 1'b1;
+        endcase
+        atomic_valid = !illegal_instruction;
+        data_valid = atomic_valid;
+        data_write = atomic_memory_write;
+        data_address = register_a;
+        data_write_data = atomic_memory_write_data;
+        data_write_strobe = atomic_word_operation ? 8'b0000_1111 : 8'b1111_1111;
+        writeback_enable = atomic_valid;
+        writeback_value = atomic_result;
+        writeback_address = rd;
+      end
+      7'b1110011: begin
+        if (instruction_data == 32'h3020_0073) begin
+          illegal_instruction = 1'b0;
+          return_from_machine = 1'b1;
+          csr_read_address = 12'h341;
+          next_program_counter = csr_read_data;
+        end else if (instruction_data == 32'h0000_0073) begin
+          illegal_instruction = 1'b0;
+          trap_to_machine = 1'b1;
+          trap_cause = 64'd11;
+          csr_read_address = 12'h305;
+          next_program_counter = csr_read_data;
+        end else if ((funct3 >= 3'b001) && (funct3 <= 3'b011)) begin
+          illegal_instruction = 1'b0;
+          writeback_enable = 1'b1;
+          csr_read_address = instruction_data[31:20];
+          writeback_value = csr_read_data;
+          csr_write_enable = rs1 != 5'd0 || funct3 == 3'b001;
+          if (funct3 == 3'b001) begin
+            csr_write_value = register_a;
+          end else if (funct3 == 3'b010) begin
+            csr_write_value = csr_read_data | register_a;
+          end else begin
+            csr_write_value = csr_read_data & ~register_a;
+          end
+        end else if ((funct3 >= 3'b101) && (funct3 <= 3'b111)) begin
+          illegal_instruction = 1'b0;
+          writeback_enable = 1'b1;
+          csr_read_address = instruction_data[31:20];
+          writeback_value = csr_read_data;
+          csr_write_enable = rs1 != 5'd0 || funct3 == 3'b101;
+          if (funct3 == 3'b101) begin
+            csr_write_value = {59'b0, rs1};
+          end else if (funct3 == 3'b110) begin
+            csr_write_value = csr_read_data | {59'b0, rs1};
+          end else begin
+            csr_write_value = csr_read_data & ~{59'b0, rs1};
+          end
+        end
+      end
       default: begin end
     endcase
 
-    if (instruction_is_memory && instruction_is_store) begin
+    if (illegal_instruction) begin
+      trap_to_machine = 1'b1;
+      csr_read_address = 12'h305;
+    end
+
+    if (instruction_is_memory && instruction_is_store && !atomic_instruction) begin
       data_write_data = register_b;
     end
   end
@@ -232,6 +370,11 @@ module rv64_core (
       commit_rd_write <= 1'b0;
       commit_rd <= '0;
       commit_rd_value <= '0;
+      commit_csr_write <= 1'b0;
+      commit_csr_address <= '0;
+      commit_csr_value <= '0;
+      commit_trap_valid <= 1'b0;
+      commit_trap_cause <= '0;
     end else begin
       commit_valid <= 1'b0;
       if (!instruction_is_memory || data_ready) begin
@@ -243,6 +386,11 @@ module rv64_core (
         commit_rd_write <= writeback_enable && (writeback_address != 5'd0) && !illegal_instruction;
         commit_rd <= writeback_address;
         commit_rd_value <= writeback_value;
+        commit_csr_write <= csr_write_enable;
+        commit_csr_address <= csr_write_address;
+        commit_csr_value <= csr_write_value;
+        commit_trap_valid <= trap_to_machine;
+        commit_trap_cause <= trap_cause;
       end
     end
   end
