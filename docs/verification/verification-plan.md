@@ -35,6 +35,9 @@ S-mode 对 U 页取指拒绝已覆盖。随机化和 cache/TLB 交互 differenti
 `scripts/run-m4-regression.sh` 是当前 M4 的可复现门禁：它只运行 MMU/cache 单元 xsim、
 核心与 SoC differential，以及 Python 单元测试；不会调用综合、实现、下载或 flash 流程。
 
+`ddr3_model` xsim 回归验证 M5 行为 DDR3 endpoint 的延迟、字节写掩码、读后写顺序、
+未校准 error 和 pending reset。它不替代 MIG 或板级 DDR3 验证。
+
 `core_alignment` xsim 回归覆盖未对齐的 `lw`、`sw`、`lr.w` 和 `amoadd.w`。它还使未对齐
 load 与同时到达的 `data_fault` 相遇，以确认 load-address-misaligned 的优先级，并检查
 `mcause`、`mtval`、`mepc`、trap vector、寄存器/内存副作用和 LR reservation。独立 ISS

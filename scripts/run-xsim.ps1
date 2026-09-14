@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('alu', 'decoder', 'regfile', 'imm', 'core', 'core_csr', 'core_atomic', 'core_alignment', 'soc', 'soc_uart', 'soc_irq', 'soc_mmu', 'soc_mmu_fault', 'soc_mmu_fault_diff', 'soc_mmu_sum_diff', 'soc_mmu_user_diff', 'soc_cache_diff', 'soc_mmu_diff', 'csr', 'atomic', 'cache', 'clint', 'plic', 'uart', 'mmu')]
+    [ValidateSet('alu', 'decoder', 'regfile', 'imm', 'core', 'core_csr', 'core_atomic', 'core_alignment', 'soc', 'soc_uart', 'soc_irq', 'soc_mmu', 'soc_mmu_fault', 'soc_mmu_fault_diff', 'soc_mmu_sum_diff', 'soc_mmu_user_diff', 'soc_cache_diff', 'soc_mmu_diff', 'csr', 'atomic', 'cache', 'clint', 'plic', 'uart', 'mmu', 'ddr3_model')]
     [string]$Test = 'alu',
     [string]$SourceRoot = (Split-Path -Parent $PSScriptRoot),
     [string]$VivadoBat = 'C:\AMDDesignTools\2026.1\Vivado\bin\vivado.bat',
@@ -123,6 +123,9 @@ try {
     } elseif ($Test -eq 'mmu') {
         $sources += @('rtl\rv64_mmu.sv', 'sim\tb_rv64_mmu.sv')
         $top = 'tb_rv64_mmu'
+    } elseif ($Test -eq 'ddr3_model') {
+        $sources += @('rtl\rv64_ddr3_model.sv', 'sim\tb_rv64_ddr3_model.sv')
+        $top = 'tb_rv64_ddr3_model'
     } else {
         $sources += @('rtl\rv64_uart.sv', 'sim\tb_rv64_uart.sv')
         $top = 'tb_rv64_uart'

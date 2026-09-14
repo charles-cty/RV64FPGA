@@ -44,9 +44,14 @@ bootloader policy.
 
 ## xsim Model
 
-Before hardware work, xsim must use a behavioral DDR3 endpoint that can delay
-read/write completion and inject an unavailable/error response. Required
-regressions are:
+`rtl/rv64_ddr3_model.sv` now provides the behavioral endpoint; it accepts one
+request, delays completion, preserves byte strobes, and reports an error while
+`calibrated=0`. `./scripts/run-xsim.sh ddr3_model` verifies its delay,
+read-after-write, byte strobe, unavailable, and pending-reset behavior. It is
+not a MIG model and cannot be used as DDR3 hardware evidence.
+
+Before hardware work, xsim must connect this endpoint or a protocol-equivalent
+behavioral model to the future adapter. Required integration regressions are:
 
 1. Aligned 8-byte read after arbitrary wait states.
 2. Write-through byte strobe preservation across every byte position.
