@@ -65,9 +65,14 @@ fetch through that shared endpoint.
 
 The vendor-free arbiter regression (`ddr3_arbiter`) verifies alternating
 instruction/data grants, payload stability, response routing, and read-after-
-write behavior against the delayed DDR3 endpoint. SoC integration still uses
-the same arbitration contract; the remaining step is to connect this shared
-CPU-side endpoint to the CDC/MIG path.
+write behavior against the delayed DDR3 endpoint. SoC integration uses the
+same arbitration contract for both CPU-side request sources.
+
+`rtl/rv64_ddr3_mig_shared_path.sv` now performs that vendor-free composition:
+the two CPU-side masters are arbitrated in `cpu_clk`, crossed once into
+`ui_clk`, and presented to the existing AXI adapter. The
+`ddr3_mig_shared_path` regression covers instruction/data responses,
+calibration rejection, and AXI lane behavior.
 
 `soc_ddr3_fault` drives the model with calibration unavailable and proves that
 the core receives a precise load access fault (`mcause=13`, `mepc=0x14`,

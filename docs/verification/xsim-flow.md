@@ -109,5 +109,8 @@ miss、延迟取指、后续 hit 和实际指令执行；它不替代共享 MIG 
 `./scripts/run-xsim.sh ddr3_arbiter` 验证指令/数据两个 DDR master 的轮询仲裁、响应路由和
 读后写顺序；它是共享 MIG 端点接入 SoC 前的独立 contract 回归。
 
+`./scripts/run-xsim.sh ddr3_mig_shared_path` 验证双 CPU 端口经共享仲裁、异步 CDC 和
+512-bit AXI adapter 后的完整 vendor-free 路径。
+
 `./scripts/run-xsim.sh uart` 与 `./scripts/run-xsim.sh soc_uart` 分别验证 UART 8N1
 发送器和 SoC `0x1000_0000` MMIO 接线；它们不证明板上存在可用 UART 管脚。
