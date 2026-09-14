@@ -38,3 +38,6 @@ xsim --nolog --runall --log sim.log tb_snap
 `./scripts/run-xsim.sh core`、`./scripts/run-xsim.sh core_csr`、`./scripts/run-xsim.sh core_atomic`、
 `./scripts/run-xsim.sh csr` 和 `./scripts/run-xsim.sh atomic`。这些回归均要求日志出现
 `SIM PASS`，并在发现 `SIM FAIL` 时返回失败。
+
+`./scripts/run-xsim.sh soc` 验证 `rv64_bram_soc` 的 LED 地址映射；它与 `core` 回归
+使用相同的 Windows staging 规则。
