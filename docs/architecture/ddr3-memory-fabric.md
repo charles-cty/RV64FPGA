@@ -56,6 +56,11 @@ delayed read miss and a read hit. The current SoC selection fixes calibration
 to ready and does not yet expose `response_error` to the core, so calibration
 error handling remains an adapter/M-mode boot-policy task.
 
+`soc_ddr3_fault` drives the model with calibration unavailable and proves that
+the core receives a precise load access fault (`mcause=13`, `mepc=0x8`,
+`mtval=0`) without a destination-register write. The same error signal will
+later originate from the MIG wrapper rather than this model.
+
 Before hardware work, xsim must connect this endpoint or a protocol-equivalent
 behavioral model to the future adapter. Required integration regressions are:
 

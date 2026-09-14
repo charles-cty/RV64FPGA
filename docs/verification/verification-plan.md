@@ -41,6 +41,9 @@ S-mode 对 U 页取指拒绝已覆盖。随机化和 cache/TLB 交互 differenti
 `soc_ddr3_model` xsim 回归将该 endpoint 接入 cache 外部内存端口，验证 write-through、
 延迟 read miss 和后续 cache hit 的架构结果。
 
+`soc_ddr3_fault` xsim 回归验证未校准 DDR3 endpoint 转化为精确 load access fault，且没有
+寄存器写回。
+
 `core_alignment` xsim 回归覆盖未对齐的 `lw`、`sw`、`lr.w` 和 `amoadd.w`。它还使未对齐
 load 与同时到达的 `data_fault` 相遇，以确认 load-address-misaligned 的优先级，并检查
 `mcause`、`mtval`、`mepc`、trap vector、寄存器/内存副作用和 LR reservation。独立 ISS

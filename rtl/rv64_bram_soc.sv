@@ -1,7 +1,8 @@
 module rv64_bram_soc #(
   parameter integer UART_BIT_CYCLES = 434,
   parameter logic USE_DDR3_MODEL = 1'b0,
-  parameter integer DDR3_MODEL_RESPONSE_DELAY = 2
+  parameter integer DDR3_MODEL_RESPONSE_DELAY = 2,
+  parameter logic DDR3_MODEL_CALIBRATED = 1'b1
 ) (
   input  logic        clk,
   input  logic        reset,
@@ -161,12 +162,13 @@ module rv64_bram_soc #(
                        uart_request ? uart_ready :
                        clint_request ? clint_ready :
                        plic_request ? plic_ready : 1'b1);
-  assign data_fault = mmu_enabled && data_translation_complete &&
-                      data_address == data_translation_virtual_address &&
-                      satp_value == data_translation_satp &&
-                      privilege_mode == data_translation_privilege &&
-                      sum_enable == data_translation_sum &&
-                      data_translation_fault_latched;
+  assign data_fault = (mmu_enabled && data_translation_complete &&
+                       data_address == data_translation_virtual_address &&
+                       satp_value == data_translation_satp &&
+                       privilege_mode == data_translation_privilege &&
+                       sum_enable == data_translation_sum &&
+                       data_translation_fault_latched) ||
+                      (USE_DDR3_MODEL && ddr3_model_error);
   assign software_interrupt = clint_software_interrupt;
   assign timer_interrupt = clint_timer_interrupt;
   assign external_interrupt = plic_external_interrupt;
@@ -221,7 +223,7 @@ module rv64_bram_soc #(
   rv64_ddr3_model #(.RESPONSE_DELAY(DDR3_MODEL_RESPONSE_DELAY)) ddr3_model (
     .clk(clk),
     .reset(reset),
-    .calibrated(1'b1),
+    .calibrated(DDR3_MODEL_CALIBRATED),
     .request_valid(USE_DDR3_MODEL && data_cache_memory_valid),
     .request_write(data_cache_memory_write),
     .request_address(data_cache_memory_address),
