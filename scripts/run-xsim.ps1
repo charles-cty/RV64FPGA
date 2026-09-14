@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('alu', 'decoder', 'regfile', 'imm', 'core', 'core_csr', 'core_atomic', 'soc', 'csr', 'atomic', 'clint')]
+    [ValidateSet('alu', 'decoder', 'regfile', 'imm', 'core', 'core_csr', 'core_atomic', 'soc', 'csr', 'atomic', 'clint', 'plic')]
     [string]$Test = 'alu',
     [string]$SourceRoot = (Split-Path -Parent $PSScriptRoot),
     [string]$VivadoBat = 'C:\AMDDesignTools\2026.1\Vivado\bin\vivado.bat',
@@ -77,9 +77,12 @@ try {
     } elseif ($Test -eq 'atomic') {
         $sources += @('rtl\rv64_atomic_unit.sv', 'sim\tb_rv64_atomic_unit.sv')
         $top = 'tb_rv64_atomic_unit'
-    } else {
+    } elseif ($Test -eq 'clint') {
         $sources += @('rtl\rv64_clint.sv', 'sim\tb_rv64_clint.sv')
         $top = 'tb_rv64_clint'
+    } else {
+        $sources += @('rtl\rv64_plic.sv', 'sim\tb_rv64_plic.sv')
+        $top = 'tb_rv64_plic'
     }
     & $xvlog --nolog --sv @sources
     $snapshot = "${top}_snap"

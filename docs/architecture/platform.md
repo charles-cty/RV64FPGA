@@ -40,3 +40,6 @@
 
 `rtl/rv64_clint.sv` 的单核 MMIO 偏移遵循标准布局：`msip=0x0000`、`mtimecmp=0x4000`
 和 `mtime=0xbff8`；其 timer/software interrupt 输出尚未接入 SoC 地址译码。
+
+`rtl/rv64_plic.sv` 提供单 hart、31 个外部源的优先级/pending/enable/threshold/claim
+寄存器与仲裁；它和 CLINT 当前均为独立外设，尚未接入 `rv64_bram_soc` 的总线。

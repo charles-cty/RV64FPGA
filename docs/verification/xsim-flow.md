@@ -44,3 +44,5 @@ xsim --nolog --runall --log sim.log tb_snap
 
 `./scripts/run-xsim.sh clint` 验证 CLINT 的计数器、字节写掩码以及 timer/software
 interrupt 边界。
+
+`./scripts/run-xsim.sh plic` 验证 PLIC 的优先级仲裁、claim/complete 和 threshold。
