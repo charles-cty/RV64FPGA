@@ -32,3 +32,7 @@ xsim --nolog --runall --log sim.log tb_snap
 ```bash
 ./scripts/run-xsim.sh alu
 ```
+
+译码器和寄存器堆回归分别使用 `./scripts/run-xsim.sh decoder` 与
+`./scripts/run-xsim.sh regfile`。三者均要求日志出现唯一的 `SIM PASS`，并在发现
+`SIM FAIL` 时返回失败。
