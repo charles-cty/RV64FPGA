@@ -41,3 +41,6 @@ xsim --nolog --runall --log sim.log tb_snap
 
 `./scripts/run-xsim.sh soc` 验证 `rv64_bram_soc` 的 LED 地址映射；它与 `core` 回归
 使用相同的 Windows staging 规则。
+
+`./scripts/run-xsim.sh clint` 验证 CLINT 的计数器、字节写掩码以及 timer/software
+interrupt 边界。
