@@ -1,4 +1,12 @@
 package riscv_pkg;
+  typedef enum logic [2:0] {
+    IMM_I,
+    IMM_S,
+    IMM_B,
+    IMM_U,
+    IMM_J
+  } immediate_kind_t;
+
   typedef enum logic [5:0] {
     ALU_ADD,
     ALU_SUB,

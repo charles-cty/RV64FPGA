@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('alu', 'decoder', 'regfile')]
+    [ValidateSet('alu', 'decoder', 'regfile', 'imm')]
     [string]$Test = 'alu',
     [string]$SourceRoot = (Split-Path -Parent $PSScriptRoot),
     [string]$VivadoBat = 'C:\AMDDesignTools\2026.1\Vivado\bin\vivado.bat',
@@ -43,9 +43,12 @@ try {
     } elseif ($Test -eq 'decoder') {
         $sources += @('rtl\rv64_decoder.sv', 'sim\tb_rv64_decoder.sv')
         $top = 'tb_rv64_decoder'
-    } else {
+    } elseif ($Test -eq 'regfile') {
         $sources += @('rtl\rv64_regfile.sv', 'sim\tb_rv64_regfile.sv')
         $top = 'tb_rv64_regfile'
+    } else {
+        $sources += @('rtl\rv64_imm_gen.sv', 'sim\tb_rv64_imm_gen.sv')
+        $top = 'tb_rv64_imm_gen'
     }
     & $xvlog --nolog --sv @sources
     $snapshot = "${top}_snap"

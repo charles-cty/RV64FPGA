@@ -29,7 +29,7 @@ uv run python -m unittest discover -s tests
 `xvlog`、`xelab`、`xsim`，并检查日志中的 `SIM PASS`。它不会运行综合、实现、下载或
 flash 编程。
 
-可用的 xsim 回归名为 `alu`、`decoder` 和 `regfile`。
+可用的 xsim 回归名为 `alu`、`decoder`、`regfile` 和 `imm`。
 
 ## 当前状态
 
