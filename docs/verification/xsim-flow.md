@@ -47,6 +47,10 @@ interrupt 边界。
 
 `./scripts/run-xsim.sh plic` 验证 PLIC 的优先级仲裁、claim/complete 和 threshold。
 
+`./scripts/run-xsim.sh mmu` 验证独立 Sv39 walker 的三级页表遍历、4 KiB/2 MiB/1 GiB
+映射、R/W/X/U/A/D 权限、S-mode SUM、非规范虚拟地址、无效 PTE、超页对齐和 Bare
+直通。该回归尚未代表 MMU 已接入 CPU 或已实现 TLB/cache。
+
 `./scripts/run-xsim.sh soc_irq` 验证 SoC 中 CLINT timer 到核心 trap/handler/MRET 的路径。
 
 `./scripts/run-xsim.sh uart` 与 `./scripts/run-xsim.sh soc_uart` 分别验证 UART 8N1

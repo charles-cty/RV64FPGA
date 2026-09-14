@@ -23,3 +23,6 @@ CI 顺序为 lint → 单元 xsim → SoC xsim → ISS differential → 覆盖�
 - 重新推导 `mepc`、异常优先级、LR/SC reservation、Sv39 权限，和 RTL/ISS 结果交叉核对。
 - 用随机程序测试流水线冲刷和 cache/TLB 交互。
 - 对 DDR3 接口先做行为模型压力测试，再做板上长时间测试。
+
+当前独立 MMU 回归已覆盖 4 KiB、2 MiB、1 GiB 页、权限/特权级、SUM、A/D、规范地址和
+无效 PTE；TLB、`SFENCE.VMA`、cache 交互及接入核心后的 differential 测试仍待补齐。

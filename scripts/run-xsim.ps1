@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('alu', 'decoder', 'regfile', 'imm', 'core', 'core_csr', 'core_atomic', 'soc', 'soc_uart', 'soc_irq', 'csr', 'atomic', 'clint', 'plic', 'uart')]
+    [ValidateSet('alu', 'decoder', 'regfile', 'imm', 'core', 'core_csr', 'core_atomic', 'soc', 'soc_uart', 'soc_irq', 'csr', 'atomic', 'clint', 'plic', 'uart', 'mmu')]
     [string]$Test = 'alu',
     [string]$SourceRoot = (Split-Path -Parent $PSScriptRoot),
     [string]$VivadoBat = 'C:\AMDDesignTools\2026.1\Vivado\bin\vivado.bat',
@@ -93,6 +93,9 @@ try {
     } elseif ($Test -eq 'plic') {
         $sources += @('rtl\rv64_plic.sv', 'sim\tb_rv64_plic.sv')
         $top = 'tb_rv64_plic'
+    } elseif ($Test -eq 'mmu') {
+        $sources += @('rtl\rv64_mmu.sv', 'sim\tb_rv64_mmu.sv')
+        $top = 'tb_rv64_mmu'
     } else {
         $sources += @('rtl\rv64_uart.sv', 'sim\tb_rv64_uart.sv')
         $top = 'tb_rv64_uart'

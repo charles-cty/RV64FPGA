@@ -51,4 +51,10 @@ package riscv_pkg;
     ATOMIC_MINU,
     ATOMIC_MAXU
   } atomic_op_t;
+
+  typedef enum logic [1:0] {
+    MMU_FETCH,
+    MMU_LOAD,
+    MMU_STORE
+  } mmu_access_t;
 endpackage
