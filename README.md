@@ -9,6 +9,7 @@
 - [项目范围与决策](docs/project/scope-and-decisions.md)
 - [架构规格](docs/architecture/specification.md)
 - [地址图与平台接口](docs/architecture/platform.md)
+- [DDR3 memory fabric contract](docs/architecture/ddr3-memory-fabric.md)
 - [验证规范](docs/verification/verification-plan.md)
 - [Differential testing 设计](docs/verification/differential-testing.md)
 - [Vivado xsim 流程](docs/verification/xsim-flow.md)
