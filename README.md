@@ -29,6 +29,7 @@ uv run python -m unittest discover -s tests
 ./scripts/run-soc-mmu-fault-diff.sh
 ./scripts/run-soc-mmu-sum-diff.sh
 ./scripts/run-soc-mmu-user-diff.sh
+./scripts/run-m4-regression.sh
 ```
 
 `run-xsim.sh` 只会调用 Vivado xsim：它把所需文件复制到 Windows 本地临时目录后执行

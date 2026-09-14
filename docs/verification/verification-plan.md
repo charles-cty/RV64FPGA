@@ -32,6 +32,9 @@ fault 已以独立 Sv39 walker/ISS 逐条比较精确 CSR trap 状态与 store �
 对 U 页的 SUM load 允许/拒绝已作 differential；U-mode 对 U/S 页的取指和 load 权限，以及
 S-mode 对 U 页取指拒绝已覆盖。随机化和 cache/TLB 交互 differential 仍待补齐。
 
+`scripts/run-m4-regression.sh` 是当前 M4 的可复现门禁：它只运行 MMU/cache 单元 xsim、
+核心与 SoC differential，以及 Python 单元测试；不会调用综合、实现、下载或 flash 流程。
+
 `core_alignment` xsim 回归覆盖未对齐的 `lw`、`sw`、`lr.w` 和 `amoadd.w`。它还使未对齐
 load 与同时到达的 `data_fault` 相遇，以确认 load-address-misaligned 的优先级，并检查
 `mcause`、`mtval`、`mepc`、trap vector、寄存器/内存副作用和 LR reservation。独立 ISS
