@@ -14,6 +14,7 @@
 - [Differential testing 设计](docs/verification/differential-testing.md)
 - [Vivado xsim 流程](docs/verification/xsim-flow.md)
 - [FPGA bring-up 与用户确认门](docs/bringup/bringup-plan.md)
+- [MIG C0 generation recipe](docs/bringup/mig-ch0-recipe.md)
 - [板卡资料盘点](docs/bringup/board-inventory.md)
 - [LC480T 原始资料审计](docs/bringup/source-audit.md)
 - [Linux 启动与验收](docs/bringup/linux-acceptance.md)
@@ -46,8 +47,10 @@ flash 编程。
 M0 工程骨架和 M1/M2/M3/M5 基础增量已建立：RTL ALU、译码、寄存器堆、立即数生成器、单周期
 CPU+BRAM 原型、独立 Python ISS、trace 比较器、CSR 单元以及已接入核心的原子访存路径
 均已纳入版本控制，CLINT/PLIC/UART 已独立完成 xsim 回归，UART/LED 和 CLINT/PLIC
-MMIO 已接入 BRAM SoC，timer trap 已通过 xsim。三级流水线、完整异常/delegation、
-PLIC 外部源接线、DDR3 及板级工程尚未实现；双 MMU 与直映 write-through 数据 cache
+MMIO 已接入 BRAM SoC，timer trap 已通过 xsim。DDR3 行为模型已接入 cache 外部内存端口，
+并覆盖延迟、字节写掩码、读后写、未校准错误和精确 load access fault；MIG IP、CDC/AXI
+适配器、完整板级约束与实际 DDR3 校准仍未实现。三级流水线、完整异常/delegation、
+PLIC 外部源接线与板级工程尚未实现；双 MMU 与直映 write-through 数据 cache
 已接入 BRAM SoC 并通过 xsim 集成回归，cacheable BRAM 数据路径已有 RTL↔ISS
 differential；基础 Sv39/MMU 核心 differential 已覆盖；execute-only 数据页的 S-mode
 fetch/load/store page fault 已有独立 Sv39 walker↔RTL 精确 trap differential，S-mode

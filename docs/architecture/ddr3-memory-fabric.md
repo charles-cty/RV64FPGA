@@ -73,19 +73,25 @@ behavioral model to the future adapter. Required integration regressions are:
 The same tests must run against the adapter and against the SoC integration
 top before any synthesis request.
 
-## Required Board Facts
+## Board Configuration Status
 
-MIG generation and top-level constraints remain blocked until these facts are
-verified from machine-readable board sources or hardware feedback:
+Machine-readable board sources now identify the first memory candidate: C0 is
+one `ddr3_cs_n[0]` channel of `MT41K256M8XX-125`, with 2 GiB usable capacity,
+72-bit ECC-enabled physical width, 15 row-address bits, 10 column-address
+bits, three bank bits, and a 200 MHz differential reference clock on
+`AH27/AH28`. The generated MIG input also contains the complete C0 pin and I/O
+standard selection. `docs/bringup/mig-ch0-recipe.md` records the source file
+identity and a generation recipe that rejects a modified input.
 
-- The selected DDR3 channel, exact rank count, component width, and total size.
-- The channel's clock pair and whether it is connected to the intended 200 MHz
-  reference clock.
-- The complete channel pinout and I/O standards accepted by the target Vivado
-  board definition.
-- A generated MIG configuration identity/version that matches
-  `xc7k480tffg1156-2` and `MT41K256M8XX-125`.
+The following evidence is still required before board work or a synthesis
+request:
 
-After these are available, the next deliverable is a checked-in MIG-generation
-recipe plus an xsim behavioral-model regression. Synthesis, implementation,
-download, and flash programming remain gated by `CONFIRM_SYNTH`.
+- Generated Vivado 2026.1 IP identity, port list, and generated constraints
+  match the selected C0 input.
+- The CDC/AXI wrapper preserves the one-outstanding-request contract and
+  passes all behavioral-model regressions.
+- `init_calib_complete`, usable capacity, and long-running error behavior are
+  observed on the actual board.
+
+The recipe does not synthesize, implement, download, or flash hardware. Those
+operations remain gated by `CONFIRM_SYNTH`.

@@ -23,6 +23,7 @@ cache 已接入 BRAM 数据路径，有独立回归及 bare-mode RTL↔ISS diffe
 以及 S-mode 对 U 页取指拒绝已覆盖。随机化、覆盖率摘要和更广泛的 cache/TLB 交互仍未完成，
 因此尚未满足 M4 退出条件。
 
-M5 的 DDR3 路径已有 CPU-side/MIG-side contract 和 xsim 验收项，但尚无 MIG 配置、完整
-DDR3 channel 约束或行为模型；这些依赖在 [DDR3 memory fabric contract](../architecture/ddr3-memory-fabric.md)
-中逐项列出，故不得将 M5 标记为已进入或完成。
+M5 的 DDR3 路径已有 CPU-side/MIG-side contract、行为模型和 cache/fault xsim 验收项，也已
+固定可审计的 C0 MIG 配置输入与生成配方。实际 MIG IP、CDC/AXI wrapper、SoC 顶层约束、
+校准和板级压力测试仍不存在；此外 M4 的退出条件尚未满足。故这些 M5 增量不能将 M5 标记为
+已进入或完成。
