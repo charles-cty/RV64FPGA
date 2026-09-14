@@ -3,6 +3,9 @@
 module tb_rv64_core;
   logic clk;
   logic reset;
+  logic software_interrupt;
+  logic timer_interrupt;
+  logic external_interrupt;
   logic [63:0] instruction_address;
   logic [31:0] instruction_data;
   logic data_valid;
@@ -63,6 +66,9 @@ module tb_rv64_core;
   initial begin
     clk = 1'b0;
     reset = 1'b1;
+    software_interrupt = 1'b0;
+    timer_interrupt = 1'b0;
+    external_interrupt = 1'b0;
     failures = 0;
     commit_count = 0;
     trace_file = $fopen("rtl_trace.jsonl", "w");

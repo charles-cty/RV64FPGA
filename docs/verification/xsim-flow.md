@@ -47,5 +47,7 @@ interrupt 边界。
 
 `./scripts/run-xsim.sh plic` 验证 PLIC 的优先级仲裁、claim/complete 和 threshold。
 
+`./scripts/run-xsim.sh soc_irq` 验证 SoC 中 CLINT timer 到核心 trap/handler/MRET 的路径。
+
 `./scripts/run-xsim.sh uart` 与 `./scripts/run-xsim.sh soc_uart` 分别验证 UART 8N1
 发送器和 SoC `0x1000_0000` MMIO 接线；它们不证明板上存在可用 UART 管脚。

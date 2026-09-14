@@ -1,6 +1,9 @@
 module rv64_core (
   input  logic        clk,
   input  logic        reset,
+  input  logic        software_interrupt,
+  input  logic        timer_interrupt,
+  input  logic        external_interrupt,
   output logic [63:0] instruction_address,
   input  logic [31:0] instruction_data,
   output logic        data_valid,
@@ -57,6 +60,12 @@ module rv64_core (
   logic        trap_to_machine;
   logic [63:0] trap_cause;
   logic        system_instruction;
+  logic        interrupt_pending;
+  logic        machine_interrupt_enable;
+  logic [63:0] machine_interrupt_enable_bits;
+  logic [63:0] machine_interrupt_pending_bits;
+  logic [63:0] machine_trap_vector;
+  logic [63:0] machine_exception_pc;
   logic        atomic_instruction;
   logic        atomic_word_operation;
   logic        atomic_valid;
@@ -117,7 +126,15 @@ module rv64_core (
     .trap_cause(trap_cause),
     .trap_value({32'b0, instruction_data}),
     .current_privilege(2'b11),
-    .return_from_machine(return_from_machine)
+    .return_from_machine(return_from_machine),
+    .software_interrupt(software_interrupt),
+    .timer_interrupt(timer_interrupt),
+    .external_interrupt(external_interrupt),
+    .machine_interrupt_enable(machine_interrupt_enable),
+    .machine_interrupt_enable_bits(machine_interrupt_enable_bits),
+    .machine_interrupt_pending_bits(machine_interrupt_pending_bits),
+    .machine_trap_vector(machine_trap_vector),
+    .machine_exception_pc(machine_exception_pc)
   );
 
   rv64_atomic_unit atomic_unit (
@@ -163,6 +180,10 @@ module rv64_core (
     return_from_machine = 1'b0;
     trap_to_machine = 1'b0;
     trap_cause = 64'd2;
+    interrupt_pending = machine_interrupt_enable &&
+      ((machine_interrupt_enable_bits[3] && machine_interrupt_pending_bits[3]) ||
+       (machine_interrupt_enable_bits[7] && machine_interrupt_pending_bits[7]) ||
+       (machine_interrupt_enable_bits[11] && machine_interrupt_pending_bits[11]));
     next_program_counter = program_counter + 64'd4;
     instruction_is_memory = 1'b0;
     instruction_is_store = 1'b0;
@@ -353,6 +374,23 @@ module rv64_core (
     if (illegal_instruction) begin
       trap_to_machine = 1'b1;
       csr_read_address = 12'h305;
+    end
+
+    if (interrupt_pending) begin
+      trap_to_machine = 1'b1;
+      illegal_instruction = 1'b0;
+      writeback_enable = 1'b0;
+      csr_write_enable = 1'b0;
+      data_valid = 1'b0;
+      csr_read_address = 12'h305;
+      next_program_counter = machine_trap_vector;
+      if (machine_interrupt_pending_bits[11] && machine_interrupt_enable_bits[11]) begin
+        trap_cause = 64'h8000_0000_0000_000b;
+      end else if (machine_interrupt_pending_bits[7] && machine_interrupt_enable_bits[7]) begin
+        trap_cause = 64'h8000_0000_0000_0007;
+      end else begin
+        trap_cause = 64'h8000_0000_0000_0003;
+      end
     end
 
     if (instruction_is_memory && instruction_is_store && !atomic_instruction) begin

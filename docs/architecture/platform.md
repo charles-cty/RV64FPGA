@@ -39,7 +39,7 @@
 板级时钟约束，也不构成综合或上板通过证据。
 
 `rtl/rv64_clint.sv` 的单核 MMIO 偏移遵循标准布局：`msip=0x0000`、`mtimecmp=0x4000`
-和 `mtime=0xbff8`；其 timer/software interrupt 输出尚未接入 SoC 地址译码。
+和 `mtime=0xbff8`；timer/software interrupt 已连接到核心，SoC xsim 已验证 timer trap。
 
 `rtl/rv64_plic.sv` 提供单 hart、31 个外部源的优先级/pending/enable/threshold/claim
-寄存器与仲裁；它和 CLINT 当前均为独立外设，尚未接入 `rv64_bram_soc` 的总线。
+寄存器与仲裁；PLIC 已接入 SoC MMIO，中断源目前固定为零，等待外设源接线。

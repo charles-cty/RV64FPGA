@@ -11,7 +11,15 @@ module rv64_csr (
   input  logic [63:0] trap_cause,
   input  logic [63:0] trap_value,
   input  logic [1:0]  current_privilege,
-  input  logic        return_from_machine
+  input  logic        return_from_machine,
+  input  logic        software_interrupt,
+  input  logic        timer_interrupt,
+  input  logic        external_interrupt,
+  output logic        machine_interrupt_enable,
+  output logic [63:0] machine_interrupt_enable_bits,
+  output logic [63:0] machine_interrupt_pending_bits,
+  output logic [63:0] machine_trap_vector,
+  output logic [63:0] machine_exception_pc
 );
   localparam logic [63:0] MISA_VALUE = 64'h8000_0000_0000_1101;
   localparam logic [63:0] SSTATUS_MASK = 64'h8000_0003_000d_e162;
@@ -36,6 +44,17 @@ module rv64_csr (
   logic [63:0] time_counter;
 
   always_comb begin
+    machine_interrupt_enable = mstatus[3];
+    machine_interrupt_enable_bits = mie;
+    machine_interrupt_pending_bits = mip;
+    machine_interrupt_pending_bits[3] = mip[3] | software_interrupt;
+    machine_interrupt_pending_bits[7] = mip[7] | timer_interrupt;
+    machine_interrupt_pending_bits[11] = mip[11] | external_interrupt;
+    machine_trap_vector = mtvec;
+    machine_exception_pc = mepc;
+  end
+
+  always_comb begin
     read_data = '0;
     unique case (read_address)
       12'h100: read_data = mstatus & SSTATUS_MASK;
@@ -57,7 +76,7 @@ module rv64_csr (
       12'h341: read_data = mepc;
       12'h342: read_data = mcause;
       12'h343: read_data = mtval;
-      12'h344: read_data = mip;
+      12'h344: read_data = machine_interrupt_pending_bits;
       12'hC01: read_data = time_counter;
       12'hC81: read_data = time_counter[63:32];
       default: read_data = '0;
