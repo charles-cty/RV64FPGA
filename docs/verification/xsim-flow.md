@@ -52,6 +52,9 @@ interrupt 边界。
 直通、小型 TLB 命中和按地址 `SFENCE.VMA`。该回归尚未代表 MMU 已接入 CPU 或已
 实现数据 cache。
 
+核心的 `csr` 回归另外验证 M/S/U 委派 trap、`sret` 和动态 trap vector；取指 `ready`
+握手当前由 SoC 固定为 1，待 MMU 接入后再增加翻译停顿场景。
+
 `./scripts/run-xsim.sh soc_irq` 验证 SoC 中 CLINT timer 到核心 trap/handler/MRET 的路径。
 
 `./scripts/run-xsim.sh uart` 与 `./scripts/run-xsim.sh soc_uart` 分别验证 UART 8N1

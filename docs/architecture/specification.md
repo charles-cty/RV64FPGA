@@ -33,6 +33,10 @@
 - `satp` 写入后按架构要求处理 TLB 失效；实现 `SFENCE.VMA`。
 - 首版 TLB 可采用小容量全相联结构；正确性优先。
 
+当前核心已暴露取指 `ready` 停顿接口、`satp/SUM/privilege` 状态和 `SFENCE.VMA` 事件，
+并已支持 CSR 层的 M/S/U 委派 trap；MMU/TLB 尚未接入取指和数据通路，完整异常/中断
+delegation 仍需继续验证。
+
 ## 复位和时钟
 
 外部复位由顶层同步到 `clk_50` 域。SpinalHDL 生成的 `.init(0)` 寄存器按同步复位验证，测试台必须在时钟边沿实际拉高 reset 后再释放。

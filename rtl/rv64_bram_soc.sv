@@ -15,6 +15,7 @@ module rv64_bram_soc #(
   logic [63:0] data_memory [0:8191];
   logic [63:0] instruction_address;
   logic [31:0] instruction_data;
+  logic instruction_ready;
   logic        data_valid;
   logic        data_write;
   logic [63:0] data_address;
@@ -35,6 +36,11 @@ module rv64_bram_soc #(
   logic        commit_trap_valid;
   logic [63:0] commit_trap_cause;
   logic        illegal_instruction;
+  logic [1:0] privilege_mode;
+  logic [63:0] satp_value;
+  logic sum_enable;
+  logic sfence_valid;
+  logic [63:0] sfence_virtual_address;
   logic        software_interrupt;
   logic        timer_interrupt;
   logic        external_interrupt;
@@ -57,6 +63,7 @@ module rv64_bram_soc #(
   rv64_core core (.*);
 
   assign instruction_data = instruction_memory[instruction_address[15:2]];
+  assign instruction_ready = 1'b1;
   assign uart_request = data_valid && (data_address[63:12] == UART_ADDRESS[63:12]);
   assign clint_request = data_valid && (data_address[63:16] == CLINT_ADDRESS[63:16]);
   assign plic_request = data_valid && (data_address[63:22] == PLIC_ADDRESS[63:22]);

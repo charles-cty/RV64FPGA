@@ -3,9 +3,10 @@ module rv64_core (
   input  logic        reset,
   input  logic        software_interrupt,
   input  logic        timer_interrupt,
-  input  logic        external_interrupt,
-  output logic [63:0] instruction_address,
-  input  logic [31:0] instruction_data,
+    input  logic        external_interrupt,
+    output logic [63:0] instruction_address,
+    input  logic [31:0] instruction_data,
+    input  logic        instruction_ready,
   output logic        data_valid,
   output logic        data_write,
   output logic [63:0] data_address,
@@ -23,9 +24,14 @@ module rv64_core (
   output logic        commit_csr_write,
   output logic [11:0] commit_csr_address,
   output logic [63:0] commit_csr_value,
-  output logic        commit_trap_valid,
-  output logic [63:0] commit_trap_cause,
-  output logic        illegal_instruction
+    output logic        commit_trap_valid,
+    output logic [63:0] commit_trap_cause,
+    output logic        illegal_instruction,
+    output logic [1:0]  privilege_mode,
+    output logic [63:0] satp_value,
+    output logic        sum_enable,
+    output logic        sfence_valid,
+    output logic [63:0] sfence_virtual_address
 );
   import riscv_pkg::*;
 
@@ -67,7 +73,6 @@ module rv64_core (
   logic [63:0] machine_interrupt_pending_bits;
   logic [63:0] machine_trap_vector;
   logic [63:0] machine_exception_pc;
-  logic [1:0] privilege_mode;
   logic [63:0] trap_vector;
   logic [63:0] trap_exception_pc;
   logic trap_delegated;
@@ -142,8 +147,8 @@ module rv64_core (
     .machine_trap_vector(machine_trap_vector),
     .machine_exception_pc(machine_exception_pc),
     .privilege_mode(privilege_mode),
-    .satp_value(),
-    .sum_enable(),
+    .satp_value(satp_value),
+    .sum_enable(sum_enable),
     .trap_vector(trap_vector),
     .trap_exception_pc(trap_exception_pc),
     .trap_delegated(trap_delegated)
@@ -213,6 +218,8 @@ module rv64_core (
     data_write_data = register_b;
     data_write_strobe = 8'b0;
     illegal_instruction = 1'b1;
+    sfence_valid = 1'b0;
+    sfence_virtual_address = register_a;
 
     unique case (opcode)
       7'b0110111: begin
@@ -342,7 +349,11 @@ module rv64_core (
         writeback_address = rd;
       end
       7'b1110011: begin
-        if (instruction_data == 32'h3020_0073) begin
+        if ((instruction_data[31:25] == 7'b0001001) &&
+            (funct3 == 3'b000)) begin
+          illegal_instruction = 1'b0;
+          sfence_valid = 1'b1;
+        end else if (instruction_data == 32'h3020_0073) begin
           illegal_instruction = 1'b0;
           return_from_machine = 1'b1;
           csr_read_address = 12'h341;
@@ -432,7 +443,7 @@ module rv64_core (
       commit_trap_cause <= '0;
     end else begin
       commit_valid <= 1'b0;
-      if (!instruction_is_memory || data_ready) begin
+      if (instruction_ready && (!instruction_is_memory || data_ready)) begin
         program_counter <= next_program_counter;
         commit_valid <= 1'b1;
         commit_pc <= program_counter;
