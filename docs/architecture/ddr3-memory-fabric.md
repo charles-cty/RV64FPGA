@@ -56,6 +56,11 @@ DDR3 physical window is `0x0000_0000_8000_0000` through
 `soc_ddr3_model` xsim regression proves a cache write-through followed by a
 delayed read miss and a read hit in that DDR3 window.
 
+The SoC's optional model path also supports instruction fetches from the same
+window through a separate instruction cache endpoint; `soc_ddr3_instruction`
+verifies a BRAM-to-DDR3 jump and delayed fetch. The simulation endpoints are
+separate models until the shared MIG arbiter is integrated.
+
 `soc_ddr3_fault` drives the model with calibration unavailable and proves that
 the core receives a precise load access fault (`mcause=13`, `mepc=0x14`,
 `mtval=0x0000_0000_8000_0000`) without a destination-register write. The same

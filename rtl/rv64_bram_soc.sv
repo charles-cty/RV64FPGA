@@ -26,6 +26,20 @@ module rv64_bram_soc #(
   logic [31:0] instruction_data;
   logic instruction_ready;
   logic instruction_fault;
+  logic instruction_translation_ready;
+  logic instruction_ddr3_access;
+  logic instruction_cache_request;
+  logic instruction_cache_response_valid;
+  logic [63:0] instruction_cache_response_data;
+  logic instruction_cache_memory_valid;
+  logic instruction_cache_memory_write;
+  logic [63:0] instruction_cache_memory_address;
+  logic [63:0] instruction_cache_memory_write_data;
+  logic [7:0] instruction_cache_memory_write_strobe;
+  logic instruction_cache_memory_ddr3;
+  logic instruction_ddr3_model_ready;
+  logic [63:0] instruction_ddr3_model_read_data;
+  logic instruction_ddr3_model_error;
   logic        data_valid;
   logic        data_write;
   logic [63:0] data_address;
@@ -127,19 +141,29 @@ module rv64_bram_soc #(
                                           sum_enable == instruction_translation_sum &&
                                           !instruction_translation_fault_latched) ?
                                          instruction_physical_address_latched : 64'b0) : instruction_address;
-  assign instruction_data = instruction_memory[instruction_physical_address[15:2]];
-  assign instruction_ready = !mmu_enabled ||
-                              (instruction_translation_complete &&
-                              instruction_address == instruction_translation_virtual_address &&
-                              satp_value == instruction_translation_satp &&
-                              privilege_mode == instruction_translation_privilege &&
-                              sum_enable == instruction_translation_sum);
-  assign instruction_fault = mmu_enabled && instruction_translation_complete &&
-                             instruction_address == instruction_translation_virtual_address &&
-                             satp_value == instruction_translation_satp &&
-                             privilege_mode == instruction_translation_privilege &&
-                             sum_enable == instruction_translation_sum &&
-                             instruction_translation_fault_latched;
+  assign instruction_translation_ready = !mmu_enabled ||
+                                         (instruction_translation_complete &&
+                                          instruction_address == instruction_translation_virtual_address &&
+                                          satp_value == instruction_translation_satp &&
+                                          privilege_mode == instruction_translation_privilege &&
+                                          sum_enable == instruction_translation_sum);
+  assign instruction_ddr3_access = instruction_translation_ready &&
+                                   !instruction_translation_fault_latched &&
+                                   instruction_physical_address >= DDR3_BASE_ADDRESS &&
+                                   instruction_physical_address < DDR3_END_ADDRESS;
+  assign instruction_cache_request = instruction_ddr3_access && USE_DDR3_MODEL;
+  assign instruction_data = instruction_cache_request ?
+                            (instruction_physical_address[2] ? instruction_cache_response_data[63:32] :
+                             instruction_cache_response_data[31:0]) :
+                            instruction_memory[instruction_physical_address[15:2]];
+  assign instruction_ready = instruction_translation_ready &&
+                             (instruction_cache_request ?
+                              (instruction_cache_response_valid || instruction_ddr3_model_error) : 1'b1);
+  assign instruction_fault = (mmu_enabled && instruction_translation_ready &&
+                              instruction_translation_fault_latched) ||
+                             (instruction_ddr3_access && !USE_DDR3_MODEL) ||
+                             (instruction_cache_memory_valid && instruction_cache_memory_ddr3 &&
+                              instruction_ddr3_model_error);
   assign data_physical_address = mmu_enabled ?
                                  ((data_translation_complete &&
                                    data_address == data_translation_virtual_address &&
@@ -246,6 +270,44 @@ module rv64_bram_soc #(
     .response_read_data(ddr3_model_read_data),
     .response_error(ddr3_model_error)
   );
+
+  rv64_ddr3_model #(.RESPONSE_DELAY(DDR3_MODEL_RESPONSE_DELAY)) instruction_ddr3_model (
+    .clk(clk),
+    .reset(reset),
+    .calibrated(DDR3_MODEL_CALIBRATED),
+    .request_valid(USE_DDR3_MODEL && instruction_cache_memory_valid && instruction_cache_memory_ddr3),
+    .request_write(instruction_cache_memory_write),
+    .request_address(instruction_cache_memory_address - DDR3_BASE_ADDRESS),
+    .request_write_data(instruction_cache_memory_write_data),
+    .request_write_strobe(instruction_cache_memory_write_strobe),
+    .request_ready(instruction_ddr3_model_ready),
+    .response_read_data(instruction_ddr3_model_read_data),
+    .response_error(instruction_ddr3_model_error)
+  );
+
+  rv64_cache #(.LINE_COUNT(4)) instruction_cache (
+    .clk(clk),
+    .reset(reset),
+    .request_valid(instruction_cache_request),
+    .request_ready(),
+    .request_write(1'b0),
+    .request_address(instruction_physical_address),
+    .request_write_data('0),
+    .request_write_strobe('0),
+    .response_valid(instruction_cache_response_valid),
+    .response_read_data(instruction_cache_response_data),
+    .memory_valid(instruction_cache_memory_valid),
+    .memory_ready(instruction_cache_memory_ddr3 ? instruction_ddr3_model_ready : 1'b1),
+    .memory_write(instruction_cache_memory_write),
+    .memory_address(instruction_cache_memory_address),
+    .memory_write_data(instruction_cache_memory_write_data),
+    .memory_write_strobe(instruction_cache_memory_write_strobe),
+    .memory_read_data(instruction_cache_memory_ddr3 ? instruction_ddr3_model_read_data :
+                      instruction_memory[instruction_cache_memory_address[15:2]])
+  );
+
+  assign instruction_cache_memory_ddr3 = instruction_cache_memory_address >= DDR3_BASE_ADDRESS &&
+                                         instruction_cache_memory_address < DDR3_END_ADDRESS;
 
   rv64_cache #(.LINE_COUNT(4)) data_cache (
     .clk(clk),
