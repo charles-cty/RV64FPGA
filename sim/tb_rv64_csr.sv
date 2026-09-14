@@ -14,6 +14,7 @@ module tb_rv64_csr;
   logic [63:0] trap_value;
   logic [1:0] current_privilege;
   logic return_from_machine;
+  logic return_from_supervisor;
   logic software_interrupt;
   logic timer_interrupt;
   logic external_interrupt;
@@ -22,6 +23,12 @@ module tb_rv64_csr;
   logic [63:0] machine_interrupt_pending_bits;
   logic [63:0] machine_trap_vector;
   logic [63:0] machine_exception_pc;
+  logic [1:0] privilege_mode;
+  logic [63:0] satp_value;
+  logic sum_enable;
+  logic [63:0] trap_vector;
+  logic [63:0] trap_exception_pc;
+  logic trap_delegated;
   integer failures;
 
   rv64_csr dut (.*);
@@ -62,6 +69,7 @@ module tb_rv64_csr;
     trap_value = '0;
     current_privilege = 2'b01;
     return_from_machine = 1'b0;
+    return_from_supervisor = 1'b0;
     software_interrupt = 1'b0;
     timer_interrupt = 1'b0;
     external_interrupt = 1'b0;
@@ -98,6 +106,54 @@ module tb_rv64_csr;
     #1;
     return_from_machine = 1'b0;
     expect_read("mret restores mstatus state", 12'h300, 64'h0000_0000_0000_0080);
+
+    write_csr(12'h302, 64'h0000_0000_0000_0200);
+    write_csr(12'h105, 64'h0000_0000_0000_2001);
+    trap_pc = 64'h0000_0000_8000_0080;
+    trap_cause = 64'd9;
+    trap_value = 64'h0000_0000_cafe_babe;
+    trap_to_machine = 1'b1;
+    @(posedge clk);
+    #1;
+    trap_to_machine = 1'b0;
+    expect_read("delegated trap saves sepc", 12'h141, trap_pc);
+    expect_read("delegated trap saves scause", 12'h142, trap_cause);
+    if (!trap_delegated || trap_vector !== 64'h0000_0000_0000_2001 ||
+        privilege_mode !== 2'b01) begin
+      $display("FAIL delegated S trap: delegated=%b vector=%h privilege=%b",
+               trap_delegated, trap_vector, privilege_mode);
+      failures = failures + 1;
+    end
+
+    return_from_supervisor = 1'b1;
+    @(posedge clk);
+    #1;
+    return_from_supervisor = 1'b0;
+    if (privilege_mode !== 2'b01) begin
+      $display("FAIL SRET did not return to S mode: privilege=%b", privilege_mode);
+      failures = failures + 1;
+    end
+
+    current_privilege = 2'b00;
+    trap_pc = 64'h0000_0000_8000_00c0;
+    trap_cause = 64'd9;
+    trap_value = 64'h0000_0000_1234_5678;
+    trap_to_machine = 1'b1;
+    @(posedge clk);
+    #1;
+    trap_to_machine = 1'b0;
+    if (privilege_mode !== 2'b01 || dut.mstatus[8] !== 1'b0) begin
+      $display("FAIL delegated U trap state: privilege=%b spp=%b", privilege_mode, dut.mstatus[8]);
+      failures = failures + 1;
+    end
+    return_from_supervisor = 1'b1;
+    @(posedge clk);
+    #1;
+    return_from_supervisor = 1'b0;
+    if (privilege_mode !== 2'b00) begin
+      $display("FAIL SRET did not return to U mode: privilege=%b", privilege_mode);
+      failures = failures + 1;
+    end
 
     if (failures != 0) begin
       $display("SIM FAIL: %0d CSR checks failed", failures);

@@ -57,6 +57,7 @@ module rv64_core (
   logic [11:0] csr_write_address;
   logic [63:0] csr_write_value;
   logic        return_from_machine;
+  logic        return_from_supervisor;
   logic        trap_to_machine;
   logic [63:0] trap_cause;
   logic        system_instruction;
@@ -66,6 +67,10 @@ module rv64_core (
   logic [63:0] machine_interrupt_pending_bits;
   logic [63:0] machine_trap_vector;
   logic [63:0] machine_exception_pc;
+  logic [1:0] privilege_mode;
+  logic [63:0] trap_vector;
+  logic [63:0] trap_exception_pc;
+  logic trap_delegated;
   logic        atomic_instruction;
   logic        atomic_word_operation;
   logic        atomic_valid;
@@ -125,8 +130,9 @@ module rv64_core (
     .trap_pc(program_counter),
     .trap_cause(trap_cause),
     .trap_value({32'b0, instruction_data}),
-    .current_privilege(2'b11),
+    .current_privilege(privilege_mode),
     .return_from_machine(return_from_machine),
+    .return_from_supervisor(return_from_supervisor),
     .software_interrupt(software_interrupt),
     .timer_interrupt(timer_interrupt),
     .external_interrupt(external_interrupt),
@@ -134,7 +140,13 @@ module rv64_core (
     .machine_interrupt_enable_bits(machine_interrupt_enable_bits),
     .machine_interrupt_pending_bits(machine_interrupt_pending_bits),
     .machine_trap_vector(machine_trap_vector),
-    .machine_exception_pc(machine_exception_pc)
+    .machine_exception_pc(machine_exception_pc),
+    .privilege_mode(privilege_mode),
+    .satp_value(),
+    .sum_enable(),
+    .trap_vector(trap_vector),
+    .trap_exception_pc(trap_exception_pc),
+    .trap_delegated(trap_delegated)
   );
 
   rv64_atomic_unit atomic_unit (
@@ -178,6 +190,7 @@ module rv64_core (
     csr_write_address = instruction_data[31:20];
     csr_write_value = '0;
     return_from_machine = 1'b0;
+    return_from_supervisor = 1'b0;
     trap_to_machine = 1'b0;
     trap_cause = 64'd2;
     interrupt_pending = machine_interrupt_enable &&
@@ -334,12 +347,17 @@ module rv64_core (
           return_from_machine = 1'b1;
           csr_read_address = 12'h341;
           next_program_counter = csr_read_data;
+        end else if (instruction_data == 32'h1020_0073) begin
+          illegal_instruction = 1'b0;
+          return_from_supervisor = 1'b1;
+          csr_read_address = 12'h141;
+          next_program_counter = csr_read_data;
         end else if (instruction_data == 32'h0000_0073) begin
           illegal_instruction = 1'b0;
           trap_to_machine = 1'b1;
-          trap_cause = 64'd11;
-          csr_read_address = 12'h305;
-          next_program_counter = csr_read_data;
+          trap_cause = privilege_mode == 2'b11 ? 64'd11 :
+                       (privilege_mode == 2'b01 ? 64'd9 : 64'd8);
+          next_program_counter = trap_vector;
         end else if ((funct3 >= 3'b001) && (funct3 <= 3'b011)) begin
           illegal_instruction = 1'b0;
           writeback_enable = 1'b1;
@@ -373,7 +391,7 @@ module rv64_core (
 
     if (illegal_instruction) begin
       trap_to_machine = 1'b1;
-      csr_read_address = 12'h305;
+      next_program_counter = trap_vector;
     end
 
     if (interrupt_pending) begin
@@ -382,8 +400,7 @@ module rv64_core (
       writeback_enable = 1'b0;
       csr_write_enable = 1'b0;
       data_valid = 1'b0;
-      csr_read_address = 12'h305;
-      next_program_counter = machine_trap_vector;
+      next_program_counter = trap_vector;
       if (machine_interrupt_pending_bits[11] && machine_interrupt_enable_bits[11]) begin
         trap_cause = 64'h8000_0000_0000_000b;
       end else if (machine_interrupt_pending_bits[7] && machine_interrupt_enable_bits[7]) begin

@@ -15,11 +15,18 @@ module rv64_csr (
   input  logic        software_interrupt,
   input  logic        timer_interrupt,
   input  logic        external_interrupt,
+  input  logic        return_from_supervisor,
   output logic        machine_interrupt_enable,
   output logic [63:0] machine_interrupt_enable_bits,
   output logic [63:0] machine_interrupt_pending_bits,
   output logic [63:0] machine_trap_vector,
-  output logic [63:0] machine_exception_pc
+  output logic [63:0] machine_exception_pc,
+  output logic [1:0]  privilege_mode,
+  output logic [63:0] satp_value,
+  output logic        sum_enable,
+  output logic [63:0] trap_vector,
+  output logic [63:0] trap_exception_pc,
+  output logic        trap_delegated
 );
   localparam logic [63:0] MISA_VALUE = 64'h8000_0000_0000_1101;
   localparam logic [63:0] SSTATUS_MASK = 64'h8000_0003_000d_e162;
@@ -42,6 +49,7 @@ module rv64_csr (
   logic [63:0] stval;
   logic [63:0] satp;
   logic [63:0] time_counter;
+  logic [1:0] privilege_mode_register;
 
   always_comb begin
     machine_interrupt_enable = mstatus[3];
@@ -52,6 +60,13 @@ module rv64_csr (
     machine_interrupt_pending_bits[11] = mip[11] | external_interrupt;
     machine_trap_vector = mtvec;
     machine_exception_pc = mepc;
+    privilege_mode = privilege_mode_register;
+    satp_value = satp;
+    sum_enable = mstatus[18];
+    trap_delegated = (current_privilege != 2'b11) &&
+      (trap_cause[63] ? mideleg[trap_cause[5:0]] : medeleg[trap_cause[5:0]]);
+    trap_vector = trap_delegated ? stvec : mtvec;
+    trap_exception_pc = trap_delegated ? sepc : mepc;
   end
 
   always_comb begin
@@ -103,6 +118,7 @@ module rv64_csr (
       stval <= '0;
       satp <= '0;
       time_counter <= '0;
+      privilege_mode_register <= 2'b11;
     end else begin
       time_counter <= time_counter + 64'd1;
 
@@ -132,16 +148,33 @@ module rv64_csr (
       end
 
       if (trap_to_machine) begin
-        mepc <= trap_pc;
-        mcause <= trap_cause;
-        mtval <= trap_value;
-        mstatus[7] <= mstatus[3];
-        mstatus[3] <= 1'b0;
-        mstatus[12:11] <= current_privilege;
+        if (trap_delegated) begin
+          sepc <= trap_pc;
+          scause <= trap_cause;
+          stval <= trap_value;
+          mstatus[5] <= mstatus[1];
+          mstatus[1] <= 1'b0;
+          mstatus[8] <= current_privilege == 2'b01;
+          privilege_mode_register <= 2'b01;
+        end else begin
+          mepc <= trap_pc;
+          mcause <= trap_cause;
+          mtval <= trap_value;
+          mstatus[7] <= mstatus[3];
+          mstatus[3] <= 1'b0;
+          mstatus[12:11] <= current_privilege;
+          privilege_mode_register <= 2'b11;
+        end
       end else if (return_from_machine) begin
         mstatus[3] <= mstatus[7];
         mstatus[7] <= 1'b1;
         mstatus[12:11] <= 2'b00;
+        privilege_mode_register <= mstatus[12:11];
+      end else if (return_from_supervisor) begin
+        mstatus[1] <= mstatus[5];
+        mstatus[5] <= 1'b1;
+        privilege_mode_register <= mstatus[8] ? 2'b01 : 2'b00;
+        mstatus[8] <= 1'b0;
       end
     end
   end
