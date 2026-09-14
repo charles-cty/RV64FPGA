@@ -13,8 +13,9 @@ exists yet.
 
 ## CPU-Side Contract
 
-The cache memory port is the sole cached-DDR master. It presents one request at
-a time:
+The data and instruction caches are the two cached-DDR masters. Each presents
+at most one request at a time; the future shared arbiter serializes them before
+the MIG wrapper. A selected cache presents:
 
 | Signal group | Meaning |
 |---|---|
