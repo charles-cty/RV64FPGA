@@ -49,13 +49,19 @@ interrupt 边界。
 
 `./scripts/run-xsim.sh mmu` 验证独立 Sv39 walker 的三级页表遍历、4 KiB/2 MiB/1 GiB
 映射、R/W/X/U/A/D 权限、S-mode SUM、非规范虚拟地址、无效 PTE、超页对齐、Bare
-直通、小型 TLB 命中和按地址 `SFENCE.VMA`。该回归尚未代表 MMU 已接入 CPU 或已
-实现数据 cache。
+直通、小型 TLB 命中和按地址 `SFENCE.VMA`。该回归覆盖 MMU 单元本身；SoC 接入另由
+`soc_mmu` 回归验证，数据 cache 尚未实现。
 
 核心的 `csr` 回归另外验证 M/S/U 委派 trap、`sret` 和动态 trap vector；取指 `ready`
-握手当前由 SoC 固定为 1，待 MMU 接入后再增加翻译停顿场景。
+握手在无 MMU 的核心单元回归中固定为 1；翻译停顿和完成保持由 `soc_mmu` 回归覆盖。
 
 `./scripts/run-xsim.sh soc_irq` 验证 SoC 中 CLINT timer 到核心 trap/handler/MRET 的路径。
+
+`./scripts/run-xsim.sh soc_mmu` 验证 SoC 双 MMU 的 Sv39 取指和数据翻译、S-mode `mret`
+切换、虚拟 store/load、物理 BRAM 写入以及翻译完成握手。
+
+`./scripts/run-xsim.sh cache` 验证直映写通数据 cache 的读 miss 填充、读 hit、写 hit 和
+字节写掩码更新。
 
 `./scripts/run-xsim.sh uart` 与 `./scripts/run-xsim.sh soc_uart` 分别验证 UART 8N1
 发送器和 SoC `0x1000_0000` MMIO 接线；它们不证明板上存在可用 UART 管脚。

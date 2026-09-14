@@ -33,9 +33,12 @@
 - `satp` 写入后按架构要求处理 TLB 失效；实现 `SFENCE.VMA`。
 - 首版 TLB 可采用小容量全相联结构；正确性优先。
 
+首版数据 cache 为小容量直映、8-byte line、write-through/no-write-allocate；MMIO 访问
+绕过 cache。其命中、miss、写回和冲突替换必须以独立 xsim 回归覆盖。
+
 当前核心已暴露取指 `ready` 停顿接口、`satp/SUM/privilege` 状态和 `SFENCE.VMA` 事件，
-并已支持 CSR 层的 M/S/U 委派 trap；MMU/TLB 尚未接入取指和数据通路，完整异常/中断
-delegation 仍需继续验证。
+并已支持 CSR 层的 M/S/U 委派 trap。BRAM SoC 已接入独立的取指/数据 MMU，完成 Sv39
+取指、数据访问和翻译故障反馈；完整异常/中断 delegation、cache 交互仍需继续验证。
 
 ## 复位和时钟
 

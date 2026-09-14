@@ -25,5 +25,6 @@ CI 顺序为 lint → 单元 xsim → SoC xsim → ISS differential → 覆盖�
 - 对 DDR3 接口先做行为模型压力测试，再做板上长时间测试。
 
 当前独立 MMU 回归已覆盖 4 KiB、2 MiB、1 GiB 页、权限/特权级、SUM、A/D、规范地址、
-无效 PTE，以及小型 TLB 命中和按地址 `SFENCE.VMA`；cache 交互及接入核心后的
+无效 PTE，以及小型 TLB 命中和按地址 `SFENCE.VMA`。直映 write-through 数据 cache
+已验证读 hit/miss、写 hit/miss、字节掩码和冲突替换，并接入 SoC；MMU/cache 核心
 differential 测试仍待补齐。

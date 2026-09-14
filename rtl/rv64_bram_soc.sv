@@ -6,6 +6,8 @@ module rv64_bram_soc #(
   output logic [2:0]  led,
   output logic        uart_tx
 );
+  import riscv_pkg::*;
+
   localparam logic [63:0] LED_ADDRESS = 64'h0000_0000_1000_1000;
   localparam logic [63:0] UART_ADDRESS = 64'h0000_0000_1000_0000;
   localparam logic [63:0] CLINT_ADDRESS = 64'h0000_0000_0200_0000;
@@ -14,8 +16,11 @@ module rv64_bram_soc #(
   logic [31:0] instruction_memory [0:16383];
   logic [63:0] data_memory [0:8191];
   logic [63:0] instruction_address;
+  logic [63:0] instruction_physical_address;
+  logic [63:0] instruction_mmu_physical_address;
   logic [31:0] instruction_data;
   logic instruction_ready;
+  logic instruction_fault;
   logic        data_valid;
   logic        data_write;
   logic [63:0] data_address;
@@ -23,6 +28,9 @@ module rv64_bram_soc #(
   logic [7:0]  data_write_strobe;
   logic [63:0] data_read_data;
   logic        data_ready;
+  logic        data_fault;
+  logic [63:0] data_physical_address;
+  logic [63:0] data_mmu_physical_address;
   logic        commit_valid;
   logic [63:0] commit_pc;
   logic [31:0] commit_instruction;
@@ -41,6 +49,7 @@ module rv64_bram_soc #(
   logic sum_enable;
   logic sfence_valid;
   logic [63:0] sfence_virtual_address;
+  logic sfence_all;
   logic        software_interrupt;
   logic        timer_interrupt;
   logic        external_interrupt;
@@ -54,6 +63,41 @@ module rv64_bram_soc #(
   logic [63:0] plic_read_data;
   logic [31:0] plic_sources;
   logic        plic_external_interrupt;
+  logic instruction_translation_done;
+  logic instruction_translation_fault;
+  logic instruction_translation_complete;
+  logic instruction_translation_fault_latched;
+  logic [63:0] instruction_translation_virtual_address;
+  logic [63:0] instruction_translation_satp;
+  logic [1:0] instruction_translation_privilege;
+  logic instruction_translation_sum;
+  logic [63:0] instruction_physical_address_latched;
+  logic instruction_pte_request;
+  logic [63:0] instruction_pte_address;
+  logic [63:0] instruction_pte_read_data;
+  logic data_translation_done;
+  logic data_translation_fault;
+  logic data_translation_complete;
+  logic data_translation_fault_latched;
+  logic [63:0] data_translation_virtual_address;
+  logic [63:0] data_translation_satp;
+  logic [1:0] data_translation_privilege;
+  logic data_translation_sum;
+  logic [63:0] data_physical_address_latched;
+  logic data_translation_ready;
+  logic data_bram_request;
+  logic data_cache_request_ready;
+  logic data_cache_response_valid;
+  logic [63:0] data_cache_response_data;
+  logic data_cache_memory_valid;
+  logic data_cache_memory_write;
+  logic [63:0] data_cache_memory_address;
+  logic [63:0] data_cache_memory_write_data;
+  logic [7:0] data_cache_memory_write_strobe;
+  logic data_pte_request;
+  logic [63:0] data_pte_address;
+  logic [63:0] data_pte_read_data;
+  logic mmu_enabled;
   logic        uart_request;
   logic        uart_ready;
   logic [63:0] uart_read_data;
@@ -62,25 +106,150 @@ module rv64_bram_soc #(
 
   rv64_core core (.*);
 
-  assign instruction_data = instruction_memory[instruction_address[15:2]];
-  assign instruction_ready = 1'b1;
-  assign uart_request = data_valid && (data_address[63:12] == UART_ADDRESS[63:12]);
-  assign clint_request = data_valid && (data_address[63:16] == CLINT_ADDRESS[63:16]);
-  assign plic_request = data_valid && (data_address[63:22] == PLIC_ADDRESS[63:22]);
-  assign data_ready = uart_request ? uart_ready :
-                      clint_request ? clint_ready :
-                      plic_request ? plic_ready : 1'b1;
+  assign mmu_enabled = (privilege_mode != 2'b11) && (satp_value[63:60] == 4'h8);
+  assign instruction_physical_address = mmu_enabled ?
+                                        ((instruction_translation_complete &&
+                                          instruction_address == instruction_translation_virtual_address &&
+                                          satp_value == instruction_translation_satp &&
+                                          privilege_mode == instruction_translation_privilege &&
+                                          sum_enable == instruction_translation_sum &&
+                                          !instruction_translation_fault_latched) ?
+                                         instruction_physical_address_latched : 64'b0) : instruction_address;
+  assign instruction_data = instruction_memory[instruction_physical_address[15:2]];
+  assign instruction_ready = !mmu_enabled ||
+                              (instruction_translation_complete &&
+                              instruction_address == instruction_translation_virtual_address &&
+                              satp_value == instruction_translation_satp &&
+                              privilege_mode == instruction_translation_privilege &&
+                              sum_enable == instruction_translation_sum);
+  assign instruction_fault = mmu_enabled && instruction_translation_complete &&
+                             instruction_address == instruction_translation_virtual_address &&
+                             satp_value == instruction_translation_satp &&
+                             privilege_mode == instruction_translation_privilege &&
+                             sum_enable == instruction_translation_sum &&
+                             instruction_translation_fault_latched;
+  assign data_physical_address = mmu_enabled ?
+                                 ((data_translation_complete &&
+                                   data_address == data_translation_virtual_address &&
+                                   satp_value == data_translation_satp &&
+                                   privilege_mode == data_translation_privilege &&
+                                   sum_enable == data_translation_sum &&
+                                   !data_translation_fault_latched) ?
+                                  data_physical_address_latched : 64'b0) : data_address;
+  assign data_translation_ready = !mmu_enabled ||
+                                  (data_translation_complete &&
+                                   data_address == data_translation_virtual_address &&
+                                   satp_value == data_translation_satp &&
+                                   privilege_mode == data_translation_privilege &&
+                                   sum_enable == data_translation_sum &&
+                                   !data_translation_fault_latched);
+  assign uart_request = data_valid && data_translation_ready &&
+                        (data_physical_address[63:12] == UART_ADDRESS[63:12]);
+  assign clint_request = data_valid && data_translation_ready &&
+                         (data_physical_address[63:16] == CLINT_ADDRESS[63:16]);
+  assign plic_request = data_valid && data_translation_ready &&
+                        (data_physical_address[63:22] == PLIC_ADDRESS[63:22]);
+  assign data_bram_request = data_valid && data_translation_ready &&
+                             data_physical_address[63:16] == 48'b0;
+  assign data_ready = data_translation_ready &&
+                      (data_bram_request ? data_cache_response_valid :
+                       uart_request ? uart_ready :
+                       clint_request ? clint_ready :
+                       plic_request ? plic_ready : 1'b1);
+  assign data_fault = mmu_enabled && data_translation_complete &&
+                      data_address == data_translation_virtual_address &&
+                      satp_value == data_translation_satp &&
+                      privilege_mode == data_translation_privilege &&
+                      sum_enable == data_translation_sum &&
+                      data_translation_fault_latched;
   assign software_interrupt = clint_software_interrupt;
   assign timer_interrupt = clint_timer_interrupt;
   assign external_interrupt = plic_external_interrupt;
   assign plic_sources = '0;
+
+  rv64_mmu instruction_mmu (
+    .clk(clk),
+    .reset(reset),
+    .translate_valid(mmu_enabled && !instruction_translation_complete &&
+                     !instruction_translation_done),
+    .virtual_address(instruction_address),
+    .access(MMU_FETCH),
+    .privilege(privilege_mode),
+    .sum_enable(sum_enable),
+    .satp(satp_value),
+    .pte_request(instruction_pte_request),
+    .pte_address(instruction_pte_address),
+    .pte_read_data(instruction_pte_read_data),
+    .pte_ready(instruction_pte_request),
+    .sfence_valid(sfence_valid),
+    .sfence_all(sfence_all),
+    .sfence_virtual_address(sfence_virtual_address),
+    .translation_done(instruction_translation_done),
+    .translation_fault(instruction_translation_fault),
+    .physical_address(instruction_mmu_physical_address),
+    .busy()
+  );
+
+  rv64_mmu data_mmu (
+    .clk(clk),
+    .reset(reset),
+    .translate_valid(mmu_enabled && data_valid && !data_translation_complete &&
+                     !data_translation_done),
+    .virtual_address(data_address),
+    .access(data_write ? MMU_STORE : MMU_LOAD),
+    .privilege(privilege_mode),
+    .sum_enable(sum_enable),
+    .satp(satp_value),
+    .pte_request(data_pte_request),
+    .pte_address(data_pte_address),
+    .pte_read_data(data_pte_read_data),
+    .pte_ready(data_pte_request),
+    .sfence_valid(sfence_valid),
+    .sfence_all(sfence_all),
+    .sfence_virtual_address(sfence_virtual_address),
+    .translation_done(data_translation_done),
+    .translation_fault(data_translation_fault),
+    .physical_address(data_mmu_physical_address),
+    .busy()
+  );
+
+  rv64_cache #(.LINE_COUNT(4)) data_cache (
+    .clk(clk),
+    .reset(reset),
+    .request_valid(data_bram_request),
+    .request_ready(data_cache_request_ready),
+    .request_write(data_write),
+    .request_address(data_physical_address),
+    .request_write_data(data_write_data),
+    .request_write_strobe(data_write_strobe),
+    .response_valid(data_cache_response_valid),
+    .response_read_data(data_cache_response_data),
+    .memory_valid(data_cache_memory_valid),
+    .memory_ready(1'b1),
+    .memory_write(data_cache_memory_write),
+    .memory_address(data_cache_memory_address),
+    .memory_write_data(data_cache_memory_write_data),
+    .memory_write_strobe(data_cache_memory_write_strobe),
+    .memory_read_data(data_memory[data_cache_memory_address[15:3]])
+  );
+
+  always_comb begin
+    instruction_pte_read_data = '0;
+    data_pte_read_data = '0;
+    if (instruction_pte_address[63:16] == 48'b0) begin
+      instruction_pte_read_data = data_memory[instruction_pte_address[15:3]];
+    end
+    if (data_pte_address[63:16] == 48'b0) begin
+      data_pte_read_data = data_memory[data_pte_address[15:3]];
+    end
+  end
 
   rv64_uart #(.BIT_CYCLES(UART_BIT_CYCLES)) uart (
     .clk(clk),
     .reset(reset),
     .request(uart_request),
     .write(data_write),
-    .address(data_address[11:0]),
+    .address(data_physical_address[11:0]),
     .write_data(data_write_data),
     .read_data(uart_read_data),
     .ready(uart_ready),
@@ -92,7 +261,7 @@ module rv64_bram_soc #(
     .reset(reset),
     .request(clint_request),
     .write(data_write),
-    .address(data_address[15:0]),
+    .address(data_physical_address[15:0]),
     .write_data(data_write_data),
     .write_strobe(data_write_strobe),
     .read_data(clint_read_data),
@@ -107,7 +276,7 @@ module rv64_bram_soc #(
     .interrupt_sources(plic_sources),
     .request(plic_request),
     .write(data_write),
-    .address(data_address[21:0]),
+    .address(data_physical_address[21:0]),
     .write_data(data_write_data),
     .read_data(plic_read_data),
     .ready(plic_ready),
@@ -115,31 +284,98 @@ module rv64_bram_soc #(
   );
 
   always_comb begin
-    if (uart_request) begin
+    if (data_bram_request) begin
+      data_read_data = data_cache_response_data;
+    end else if (uart_request) begin
       data_read_data = uart_read_data;
     end else if (clint_request) begin
       data_read_data = clint_read_data;
     end else if (plic_request) begin
       data_read_data = plic_read_data;
-    end else if (data_address == LED_ADDRESS) begin
+    end else if (data_physical_address == LED_ADDRESS) begin
       data_read_data = {61'b0, led};
     end else begin
-      data_read_data = data_memory[data_address[15:3]];
+      data_read_data = data_memory[data_physical_address[15:3]];
     end
   end
 
   always_ff @(posedge clk) begin
     if (reset) begin
       led <= 3'b0;
-    end else if (data_valid && data_write) begin
-      if (data_address == LED_ADDRESS) begin
-        if (data_write_strobe[0]) begin
-          led <= data_write_data[2:0];
+      instruction_translation_complete <= 1'b0;
+      instruction_translation_fault_latched <= 1'b0;
+      instruction_translation_virtual_address <= '0;
+      instruction_translation_satp <= '0;
+      instruction_translation_privilege <= '0;
+      instruction_translation_sum <= 1'b0;
+      instruction_physical_address_latched <= '0;
+      data_translation_complete <= 1'b0;
+      data_translation_fault_latched <= 1'b0;
+      data_translation_virtual_address <= '0;
+      data_translation_satp <= '0;
+      data_translation_privilege <= '0;
+      data_translation_sum <= 1'b0;
+      data_physical_address_latched <= '0;
+    end else begin
+      if (!mmu_enabled) begin
+        instruction_translation_complete <= 1'b0;
+        data_translation_complete <= 1'b0;
+      end else begin
+        if (instruction_translation_complete &&
+            (instruction_address != instruction_translation_virtual_address ||
+             satp_value != instruction_translation_satp ||
+             privilege_mode != instruction_translation_privilege ||
+             sum_enable != instruction_translation_sum)) begin
+          instruction_translation_complete <= 1'b0;
         end
-      end else if (!uart_request && !clint_request && !plic_request) begin
+        if (instruction_translation_done && !instruction_translation_complete) begin
+          instruction_translation_complete <= 1'b1;
+          instruction_translation_fault_latched <= instruction_translation_fault;
+          instruction_translation_virtual_address <= instruction_address;
+          instruction_translation_satp <= satp_value;
+          instruction_translation_privilege <= privilege_mode;
+          instruction_translation_sum <= sum_enable;
+          instruction_physical_address_latched <= instruction_mmu_physical_address;
+        end
+        if (!data_valid) begin
+          data_translation_complete <= 1'b0;
+        end else if (data_translation_complete &&
+                     (data_address != data_translation_virtual_address ||
+                      satp_value != data_translation_satp ||
+                      privilege_mode != data_translation_privilege ||
+                      sum_enable != data_translation_sum)) begin
+          data_translation_complete <= 1'b0;
+        end
+        if (data_translation_done && !data_translation_complete) begin
+          data_translation_complete <= 1'b1;
+          data_translation_fault_latched <= data_translation_fault;
+          data_translation_virtual_address <= data_address;
+          data_translation_satp <= satp_value;
+          data_translation_privilege <= privilege_mode;
+          data_translation_sum <= sum_enable;
+          data_physical_address_latched <= data_mmu_physical_address;
+        end
+      end
+
+      if (data_cache_memory_valid && data_cache_memory_write) begin
         for (byte_index = 0; byte_index < 8; byte_index = byte_index + 1) begin
-          if (data_write_strobe[byte_index]) begin
-            data_memory[data_address[15:3]][byte_index*8 +: 8] <= data_write_data[byte_index*8 +: 8];
+          if (data_cache_memory_write_strobe[byte_index]) begin
+            data_memory[data_cache_memory_address[15:3]][byte_index*8 +: 8] <=
+              data_cache_memory_write_data[byte_index*8 +: 8];
+          end
+        end
+      end
+
+      if (data_valid && data_write && data_ready) begin
+        if (data_physical_address == LED_ADDRESS) begin
+          if (data_write_strobe[0]) begin
+            led <= data_write_data[2:0];
+          end
+        end else if (!data_bram_request && !uart_request && !clint_request && !plic_request) begin
+          for (byte_index = 0; byte_index < 8; byte_index = byte_index + 1) begin
+            if (data_write_strobe[byte_index]) begin
+              data_memory[data_physical_address[15:3]][byte_index*8 +: 8] <= data_write_data[byte_index*8 +: 8];
+            end
           end
         end
       end

@@ -33,11 +33,12 @@ module rv64_decoder (
           3'b111: operation = ALU_AND;
           3'b001: begin
             operation = ALU_SLL;
-            illegal = funct7 != 7'b0000000;
+            illegal = instruction[31:26] != 6'b000000;
           end
           3'b101: begin
-            operation = (funct7 == 7'b0100000) ? ALU_SRA : ALU_SRL;
-            illegal = (funct7 != 7'b0000000) && (funct7 != 7'b0100000);
+            operation = (instruction[31:26] == 6'b010000) ? ALU_SRA : ALU_SRL;
+            illegal = (instruction[31:26] != 6'b000000) &&
+                      (instruction[31:26] != 6'b010000);
           end
           default: illegal = 1'b1;
         endcase

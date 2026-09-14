@@ -36,7 +36,9 @@ module tb_rv64_decoder;
   initial begin
     failures = 0;
     expect_decode("addi", 32'h0010_0093, ALU_ADD, 1'b1, 1'b1, 1'b0);
+    expect_decode("slli shamt 32", 32'h0200_9093, ALU_SLL, 1'b1, 1'b1, 1'b0);
     expect_decode("srai", 32'h4010_d093, ALU_SRA, 1'b1, 1'b1, 1'b0);
+    expect_decode("srai shamt 32", 32'h4200_d093, ALU_SRA, 1'b1, 1'b1, 1'b0);
     expect_decode("addw", 32'h0020_81bb, ALU_ADDW, 1'b0, 1'b1, 1'b0);
     expect_decode("mulhsu", 32'h0220_a233, ALU_MULHSU, 1'b0, 1'b1, 1'b0);
     expect_decode("divuw", 32'h0221_d23b, ALU_DIVUW, 1'b0, 1'b1, 1'b0);
