@@ -1,0 +1,30 @@
+# Vivado and simulator generated data
+*.jou
+*.log
+*.str
+*.wdb
+*.pb
+*.bit
+*.ltx
+*.mcs
+*.bin
+.Xil/
+vivado*.backup.*
+*.runs/
+*.cache/
+*.hw/
+*.sim/
+*.gen/
+
+# Local staging and build outputs
+build/
+out/
+sim/out/
+*.elf
+*.hex
+*.mem
+
+# Editor/OS files
+.vscode/
+.idea/
+.DS_Store
