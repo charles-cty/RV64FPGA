@@ -11,7 +11,12 @@ module tb_rv64_bram_soc_mmu_user_diff;
   integer commit_count;
   integer cycle_count;
 
-  rv64_bram_soc #(.UART_BIT_CYCLES(2)) dut (.*);
+  rv64_bram_soc #(.UART_BIT_CYCLES(2)) dut (
+    .clk(clk), .reset(reset), .led(led), .uart_tx(uart_tx), .uart_rx(1'b1),
+    .external_ddr3_request_ready(1'b0),
+    .external_ddr3_response_read_data(64'b0),
+    .external_ddr3_response_error(1'b0)
+  );
   always #5 clk = ~clk;
 
   function automatic logic [31:0] encode_i(input logic [11:0] immediate,

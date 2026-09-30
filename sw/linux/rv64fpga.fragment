@@ -1,0 +1,48 @@
+# CONFIG_FPU is not set
+# CONFIG_RISCV_ISA_C is not set
+# CONFIG_RISCV_ISA_V is not set
+# CONFIG_RISCV_ISA_FALLBACK is not set
+# CONFIG_EFI is not set
+CONFIG_NONPORTABLE=y
+CONFIG_CMDLINE="console=ttyS0,115200 earlycon=ns16550a,mmio,0x10000000 initcall_debug"
+CONFIG_CMDLINE_FORCE=y
+CONFIG_DEVTMPFS=y
+CONFIG_DEVTMPFS_MOUNT=y
+CONFIG_BLK_DEV_INITRD=y
+CONFIG_SERIAL_8250=y
+CONFIG_SERIAL_8250_CONSOLE=y
+CONFIG_SERIAL_OF_PLATFORM=y
+# The single soft-core can spend more than the default 30 s workqueue
+# watchdog window in early init while servicing uncached DDR3 misses.  A
+# watchdog panic here masks forward progress and is not a Linux acceptance
+# criterion for this bring-up target.
+# CONFIG_SOFTLOCKUP_DETECTOR is not set
+# CONFIG_WQ_WATCHDOG is not set
+# The soft-core's uncached DDR3 bring-up can exceed the upstream RCU stall
+# window while still making forward progress.  Keep stall diagnostics enabled,
+# but use a long diagnostic window until the timer/clocksource path is proven.
+CONFIG_RCU_CPU_STALL_TIMEOUT=600
+# Deterministic bring-up option: avoid the long scalar unaligned benchmark.
+CONFIG_RISCV_PROBE_UNALIGNED_ACCESS=n
+CONFIG_RISCV_PMU_SBI=n
+CONFIG_CPU_IDLE=n
+CONFIG_CPU_FREQ=n
+CONFIG_USB_SUPPORT=n
+CONFIG_MMC=n
+CONFIG_SCSI=n
+CONFIG_ATA=n
+CONFIG_PCI=n
+CONFIG_VIRTIO=n
+CONFIG_SOUND=n
+CONFIG_DRM=n
+CONFIG_NET=n
+CONFIG_MODULES=n
+CONFIG_SND=n
+CONFIG_SND_SOC=n
+CONFIG_PM=n
+CONFIG_SUSPEND=n
+CONFIG_HIBERNATION=n
+CONFIG_CGROUPS=n
+CONFIG_NAMESPACES=n
+CONFIG_KEXEC=n
+CONFIG_CRASH_DUMP=n

@@ -17,6 +17,14 @@ module rv64_ddr3_arbiter (
   output logic        data_request_ready,
   output logic [63:0] data_response_read_data,
   output logic        data_response_error,
+  input  logic        pte_request_valid,
+  input  logic        pte_request_write,
+  input  logic [63:0] pte_request_address,
+  input  logic [63:0] pte_request_write_data,
+  input  logic [7:0]  pte_request_write_strobe,
+  output logic        pte_request_ready,
+  output logic [63:0] pte_response_read_data,
+  output logic        pte_response_error,
   output logic        memory_request_valid,
   output logic        memory_request_write,
   output logic [63:0] memory_request_address,
@@ -29,8 +37,8 @@ module rv64_ddr3_arbiter (
   typedef enum logic {IDLE, WAITING} state_t;
 
   state_t state;
-  logic selected_instruction;
-  logic last_grant_instruction;
+  logic [1:0] selected_source;
+  logic [1:0] last_grant_source;
   logic request_write_latched;
   logic [63:0] request_address_latched;
   logic [63:0] request_write_data_latched;
@@ -39,12 +47,15 @@ module rv64_ddr3_arbiter (
 
   always_comb begin
     selected_request_ready = state == WAITING && memory_request_ready;
-    instruction_request_ready = selected_request_ready && selected_instruction;
-    data_request_ready = selected_request_ready && !selected_instruction;
+    instruction_request_ready = selected_request_ready && selected_source == 2'd0;
+    data_request_ready = selected_request_ready && selected_source == 2'd1;
+    pte_request_ready = selected_request_ready && selected_source == 2'd2;
     instruction_response_read_data = memory_response_read_data;
     data_response_read_data = memory_response_read_data;
+    pte_response_read_data = memory_response_read_data;
     instruction_response_error = instruction_request_ready && memory_response_error;
     data_response_error = data_request_ready && memory_response_error;
+    pte_response_error = pte_request_ready && memory_response_error;
     memory_request_valid = state == WAITING;
     memory_request_write = request_write_latched;
     memory_request_address = request_address_latched;
@@ -55,8 +66,8 @@ module rv64_ddr3_arbiter (
   always_ff @(posedge clk) begin
     if (reset) begin
       state <= IDLE;
-      selected_instruction <= 1'b0;
-      last_grant_instruction <= 1'b0;
+      selected_source <= 2'd0;
+      last_grant_source <= 2'd1;
       request_write_latched <= 1'b0;
       request_address_latched <= '0;
       request_write_data_latched <= '0;
@@ -64,29 +75,37 @@ module rv64_ddr3_arbiter (
     end else begin
       case (state)
         IDLE: begin
-          if (instruction_request_valid && data_request_valid) begin
-            selected_instruction <= !last_grant_instruction;
-            request_write_latched <= last_grant_instruction ? data_request_write : instruction_request_write;
-            request_address_latched <= last_grant_instruction ? data_request_address : instruction_request_address;
-            request_write_data_latched <= last_grant_instruction ? data_request_write_data : instruction_request_write_data;
-            request_write_strobe_latched <= last_grant_instruction ? data_request_write_strobe : instruction_request_write_strobe;
-            last_grant_instruction <= !last_grant_instruction;
+          if (pte_request_valid) begin
+            selected_source <= 2'd2;
+            request_write_latched <= pte_request_write;
+            request_address_latched <= pte_request_address;
+            request_write_data_latched <= pte_request_write_data;
+            request_write_strobe_latched <= pte_request_write_strobe;
+            last_grant_source <= 2'd2;
+            state <= WAITING;
+          end else if (instruction_request_valid && data_request_valid) begin
+            selected_source <= last_grant_source == 2'd0 ? 2'd1 : 2'd0;
+            request_write_latched <= last_grant_source == 2'd0 ? data_request_write : instruction_request_write;
+            request_address_latched <= last_grant_source == 2'd0 ? data_request_address : instruction_request_address;
+            request_write_data_latched <= last_grant_source == 2'd0 ? data_request_write_data : instruction_request_write_data;
+            request_write_strobe_latched <= last_grant_source == 2'd0 ? data_request_write_strobe : instruction_request_write_strobe;
+            last_grant_source <= last_grant_source == 2'd0 ? 2'd1 : 2'd0;
             state <= WAITING;
           end else if (instruction_request_valid) begin
-            selected_instruction <= 1'b1;
+            selected_source <= 2'd0;
             request_write_latched <= instruction_request_write;
             request_address_latched <= instruction_request_address;
             request_write_data_latched <= instruction_request_write_data;
             request_write_strobe_latched <= instruction_request_write_strobe;
-            last_grant_instruction <= 1'b1;
+            last_grant_source <= 2'd0;
             state <= WAITING;
           end else if (data_request_valid) begin
-            selected_instruction <= 1'b0;
+            selected_source <= 2'd1;
             request_write_latched <= data_request_write;
             request_address_latched <= data_request_address;
             request_write_data_latched <= data_request_write_data;
             request_write_strobe_latched <= data_request_write_strobe;
-            last_grant_instruction <= 1'b0;
+            last_grant_source <= 2'd1;
             state <= WAITING;
           end
         end

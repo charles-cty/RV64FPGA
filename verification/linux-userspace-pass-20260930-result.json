@@ -1,0 +1,26 @@
+{
+  "baseline": "linux-userspace-pass-20260930.json",
+  "selftest": "RV64FPGA USERSPACE_CHECK_PASS proc sysfs tmpfs sleep fork exec wait",
+  "first_boot_uptime": "278.12 -> 280.34",
+  "timing_ns": {
+    "WNS": 0.158,
+    "WHS": 0.036
+  },
+  "final_boot_entry": "0x10144 U-mode",
+  "final_capture_time_windows": "2026-09-30 16:45:11 Asia/Singapore",
+  "final_runtime": [
+    "timekeeping_update",
+    "hrtimer_interrupt",
+    "tick_nohz_next_event"
+  ],
+  "raw_evidence_directories": [
+    "build/atomic-fault-boot-20260930",
+    "build/atomic-fault-final-20260930"
+  ],
+  "limits": [
+    "Physical UART input unverified",
+    "Long-duration stability unverified",
+    "Latest bitstream not flashed",
+    "No clean-environment rebuild performed"
+  ]
+}

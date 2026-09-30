@@ -7,7 +7,7 @@
 | Boot ROM | `0x0000_0000` | 64 KiB | 复位入口和早期 bootloader |
 | CLINT | `0x0200_0000` | 64 KiB | `mtime`/`mtimecmp` |
 | PLIC | `0x0C00_0000` | 1 MiB | 外部中断控制器 |
-| UART | `0x1000_0000` | 4 KiB | 轮询和中断串口 |
+| UART | `0x1000_0000` | 4 KiB | 轮询和中断串口（TX/LSR 兼容 16550 常用寄存器） |
 | GPIO/LED | `0x1000_1000` | 4 KiB | 板级生命信号 |
 | DDR3 | `0x8000_0000` | 按实测容量 | 主存 |
 
@@ -35,11 +35,14 @@
 仿真专用 commit trace 不进入功能路径。综合版本提供 LED 心跳、UART 状态和可选 VIO probes。JTAG-AXI bench 使用 `clk_50` 域 BRAM 往返验证总线。
 
 当前 `rtl/rv64_bram_soc.sv` 将核心、双 Sv39 MMU、片上指令/数据 BRAM、UART
-(`0x1000_0000`) 和 `GPIO/LED` (`0x1000_1000`) 连成可运行的仿真顶层。该顶层只用于
-xsim 验证，尚未添加板级时钟约束，也不构成综合或上板通过证据。
+(`0x1000_0000`) 和 `GPIO/LED` (`0x1000_1000`) 连成可运行的仿真顶层；
+`rtl/rv64_mig_soc_top.sv` 另提供 MIG/DDR3 板级候选顶层，并由
+`constraints/rv64_mig_soc_top.xdc` 约束已确认的时钟和 LED 管脚。两者都尚未经过综合、
+实现或实际板级验证。
 
 `rtl/rv64_clint.sv` 的单核 MMIO 偏移遵循标准布局：`msip=0x0000`、`mtimecmp=0x4000`
 和 `mtime=0xbff8`；timer/software interrupt 已连接到核心，SoC xsim 已验证 timer trap。
 
 `rtl/rv64_plic.sv` 提供单 hart、31 个外部源的优先级/pending/enable/threshold/claim
-寄存器与仲裁；PLIC 已接入 SoC MMIO，中断源目前固定为零，等待外设源接线。
+寄存器与仲裁，并同时接受 M-mode context `0x200000` 和 S-mode context `0x201000`；PLIC
+已接入 SoC MMIO，UART RX 已接到 source 1；其余外设源仍保留为零。

@@ -15,6 +15,7 @@ module rv64_plic (
   logic [31:0] enable;
   logic [2:0] threshold;
   logic [5:0] claim_id;
+  logic [2:0] highest_priority;
   integer claim_index;
   integer reset_index;
 
@@ -23,8 +24,12 @@ module rv64_plic (
 
   always_comb begin
     claim_id = 6'd0;
-    for (claim_index = 31; claim_index >= 1; claim_index = claim_index - 1) begin
-      if (pending[claim_index] && enable[claim_index] && (priorities[claim_index] > threshold)) begin
+    highest_priority = 3'd0;
+    for (claim_index = 1; claim_index <= 31; claim_index = claim_index + 1) begin
+      if (pending[claim_index] && enable[claim_index] &&
+          (priorities[claim_index] > threshold) &&
+          (priorities[claim_index] > highest_priority)) begin
+        highest_priority = priorities[claim_index];
         claim_id = claim_index[5:0];
       end
     end
@@ -38,8 +43,8 @@ module rv64_plic (
       unique case (address)
         22'h001000: read_data = {32'b0, pending};
         22'h002000: read_data = {32'b0, enable};
-        22'h200000: read_data = {61'b0, threshold};
-        22'h200004: read_data = {58'b0, claim_id};
+        22'h200000, 22'h201000: read_data = {61'b0, threshold};
+        22'h200004, 22'h201004: read_data = {58'b0, claim_id};
         default: read_data = '0;
       endcase
     end
@@ -61,12 +66,14 @@ module rv64_plic (
         end else begin
           unique case (address)
             22'h002000: enable <= write_data[31:0];
-            22'h200000: threshold <= write_data[2:0];
-            22'h200004: if (write_data[5:0] != 0) pending[write_data[5:0]] <= 1'b0;
+            22'h200000, 22'h201000: threshold <= write_data[2:0];
+            22'h200004, 22'h201004: if (write_data[5:0] != 0) pending[write_data[5:0]] <= 1'b0;
             default: ;
           endcase
         end
-      end else if (request && !write && (address == 22'h200004) && (claim_id != 0)) begin
+      end else if (request && !write &&
+                   ((address == 22'h200004) || (address == 22'h201004)) &&
+                   (claim_id != 0)) begin
         pending[claim_id] <= 1'b0;
       end
     end

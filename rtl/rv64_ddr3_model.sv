@@ -1,6 +1,7 @@
 module rv64_ddr3_model #(
   parameter integer WORD_COUNT = 1024,
-  parameter integer RESPONSE_DELAY = 2
+  parameter integer RESPONSE_DELAY = 2,
+  parameter string INIT_FILE = ""
 ) (
   input  logic        clk,
   input  logic        reset,
@@ -23,6 +24,7 @@ module rv64_ddr3_model #(
   logic [7:0] request_write_strobe_latched;
   integer delay_count;
   integer byte_index;
+  integer init_index;
   logic [63:0] memory [0:WORD_COUNT-1];
 
   always_comb begin
@@ -60,6 +62,15 @@ module rv64_ddr3_model #(
         end
       end
       state <= IDLE;
+    end
+  end
+
+  initial begin
+    for (init_index = 0; init_index < WORD_COUNT; init_index = init_index + 1) begin
+      memory[init_index] = 64'b0;
+    end
+    if (INIT_FILE != "") begin
+      $readmemh(INIT_FILE, memory);
     end
   end
 endmodule

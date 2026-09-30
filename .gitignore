@@ -26,8 +26,24 @@ __pycache__/
 *.elf
 *.hex
 *.mem
+!sim/boot_rom_init.hex
+!sim/ddr3_model_init.hex
 
 # Editor/OS files
 .vscode/
 .idea/
 .DS_Store
+
+# Vivado IP: retain customization inputs, regenerate all output products.
+ip/**
+!ip/README.md
+!ip/rv64_mig_ch0/
+!ip/rv64_mig_ch0/rv64_mig_ch0/
+!ip/rv64_mig_ch0/rv64_mig_ch0/rv64_mig_ch0.xci
+!ip/rv64_mig_ch0/rv64_mig_ch0/mig.prj
+!ip/rv64_jtag_axi/
+!ip/rv64_jtag_axi/rv64_jtag_axi/
+!ip/rv64_jtag_axi/rv64_jtag_axi/rv64_jtag_axi.xci
+!ip/rv64_debug_ila/
+!ip/rv64_debug_ila/rv64_debug_ila/
+!ip/rv64_debug_ila/rv64_debug_ila/rv64_debug_ila.xci

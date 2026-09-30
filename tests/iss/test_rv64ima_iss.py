@@ -19,6 +19,11 @@ def encode_s_type(rs1: int, rs2: int, immediate: int, funct3: int) -> int:
     return (((immediate >> 5) & 0x7F) << 25) | (rs2 << 20) | (rs1 << 15) | (funct3 << 12) | ((immediate & 0x1F) << 7) | 0x23
 
 
+def encode_atomic(rd: int, rs1: int, rs2: int, operation: int, word: bool = False) -> int:
+    funct3 = 0x2 if word else 0x3
+    return (operation << 27) | (rs2 << 20) | (rs1 << 15) | (funct3 << 12) | (rd << 7) | 0x2F
+
+
 class RV64IMAISSTest(unittest.TestCase):
     def test_x0_ignores_writes_and_commit_marks_no_writeback(self) -> None:
         iss = RV64IMAISS(start_pc=0x8000_0000)
@@ -42,6 +47,17 @@ class RV64IMAISSTest(unittest.TestCase):
 
         self.assertEqual(commit.rd_value, 1 << 32)
         self.assertEqual(iss.registers[2], 1 << 32)
+
+    def test_fence_instructions_advance_without_state_changes(self) -> None:
+        iss = RV64IMAISS(start_pc=0x100)
+        iss.registers[1] = 0x1234
+        fence = (0 << 12) | 0x0F
+        fence_i = (1 << 12) | 0x0F
+        wfi = 0x10500073
+        self.assertEqual(iss.step(fence).next_pc, 0x104)
+        self.assertEqual(iss.step(fence_i).next_pc, 0x108)
+        self.assertEqual(iss.step(wfi).next_pc, 0x10C)
+        self.assertEqual(iss.registers[1], 0x1234)
 
     def test_signed_division_truncates_toward_zero(self) -> None:
         iss = RV64IMAISS()
@@ -69,6 +85,25 @@ class RV64IMAISSTest(unittest.TestCase):
 
         with self.assertRaises(IllegalInstruction):
             iss.step(instruction)
+
+    def test_lr_sc_and_amo_update_memory_and_return_old_values(self) -> None:
+        iss = RV64IMAISS()
+        iss.registers[1] = 0x20
+        iss.registers[2] = 5
+        iss.memory.update({0x20: 10, 0x21: 0, 0x22: 0, 0x23: 0})
+
+        self.assertEqual(iss.step(encode_atomic(3, 1, 0, 0x02, word=True)).rd_value, 10)
+        self.assertEqual(iss.step(encode_atomic(4, 1, 2, 0x03, word=True)).rd_value, 0)
+        self.assertEqual(iss.step(encode_atomic(5, 1, 2, 0x00, word=True)).rd_value, 5)
+        self.assertEqual(iss.registers[5], 5)
+        self.assertEqual(iss._load(0x20, 4, True), 10)
+
+    def test_failed_sc_clears_reservation(self) -> None:
+        iss = RV64IMAISS()
+        iss.registers[1] = 0x40
+        iss.registers[2] = 9
+        self.assertEqual(iss.step(encode_atomic(3, 1, 0, 0x03)).rd_value, 1)
+        self.assertEqual(iss.step(encode_atomic(4, 1, 2, 0x03)).rd_value, 1)
 
     def test_misaligned_load_preserves_registers_and_program_counter(self) -> None:
         iss = RV64IMAISS(start_pc=0x100)

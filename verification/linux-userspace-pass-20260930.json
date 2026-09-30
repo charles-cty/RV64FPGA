@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "name": "linux-userspace-pass-20260930",
+  "source_snapshot": "build/atomic-fault-source-20260928",
+  "source_sha256": {
+    "rtl/riscv_pkg.sv": "e22165ed118741b85139889c2993b8433fb021bfa697c06072016bc3e33cf51e",
+    "rtl/rv64_alu.sv": "7e54d7a87f6786634c65bc9db661f69daac0488a9316e5155a0e529bc382de80",
+    "rtl/rv64_async_memory_bridge.sv": "7626d54453a65cde7e50b55e22d25abda88cb714c26b2be0f50769892874d761",
+    "rtl/rv64_atomic_unit.sv": "67ee14d57f553c1c71d30945911210b6026593115fd68023ee27291baa1b9251",
+    "rtl/rv64_bram_soc.sv": "f8bb983dcc269eeea2a16bac303592a6d52d7969dd1c3dfef2bd54ec7910539a",
+    "rtl/rv64_cache.sv": "ee8d56eaf4ce18d0f88f64e1c41a3c9e4f64e628f16b597ed4925ee54afd4520",
+    "rtl/rv64_clint.sv": "6f2960802bb9507c9d7668ab8b9ffa1e2c94207c18fc3d6f4b079aff76095521",
+    "rtl/rv64_core.sv": "7bc38ac96615585775905bef031385dfe78abfb6eebcab12c66cfce9279f179f",
+    "rtl/rv64_csr.sv": "ab085545f4915611c286c6345a075f462bb725f1d753cf8b8cf4445b8a5a84cb",
+    "rtl/rv64_ddr3_arbiter.sv": "0f76869c7e4912f258fee42925429b8f45f95d5f93f263c8d4ef23395165f1e4",
+    "rtl/rv64_ddr3_axi_adapter.sv": "e17b3ab28a49d24cd3dc4d2d50225043b7298b3f1d959b5b36b86c889c547d3b",
+    "rtl/rv64_ddr3_clock_frequency_probe_top.sv": "263c320f142dc07fdafed3ef3e2583255200924f93ea5e98a4bd310ffa131838",
+    "rtl/rv64_ddr3_clock_probe_top.sv": "9301c1c20cdcd538585a98812ddd6a443fee87f2aa124ea01079e8ff76461463",
+    "rtl/rv64_ddr3_diag_controller.sv": "42cc8ce451c421645efdfcd687f9def61e55078023d5f8dbd2a9de00d34e402f",
+    "rtl/rv64_ddr3_mig_atomic_path.sv": "35ed8e92fe167669d013e3c7798d8b552744393551cf91613719fda311feabb6",
+    "rtl/rv64_ddr3_mig_path.sv": "5290264c71732b5661df74bdd8844ac13b2b9cde9b8d996abea82b3f2f951623",
+    "rtl/rv64_ddr3_mig_shared_path.sv": "f34b10d295374221b4af90c377727085ec3b152588a7df2abe23c6adeef7a6d9",
+    "rtl/rv64_ddr3_model.sv": "84c83c9fc606a50c9b97cda441e70e0bbbcfae74993f5cc3b228a970a35a419c",
+    "rtl/rv64_decoder.sv": "48e834304788183454a3d39f4966c01a1888595b28c06dbc64af8f4d3407f612",
+    "rtl/rv64_divider.sv": "e3299b6d7ef799c705c563a48855c8931bc3e349686283a50e67c42a118000ff",
+    "rtl/rv64_imm_gen.sv": "cd358c64e28d450937b7a2efe0363788bf0df3ce81fcc9ec60f81ac3274f25dc",
+    "rtl/rv64_jtag_axi_loader.sv": "9ea58f76b503ed5689ea51c247dd23776f1ff678c433b3e5789c00382ad810ec",
+    "rtl/rv64_led_walk_top.sv": "2c16b17fe8e55971f0c60d466c6ea52de0e9f18ea381f891485ce2ebc6358eda",
+    "rtl/rv64_mig_ddr3_diag_top.sv": "fdb630bc987c771d71a5c24c495503052ebbf79f1e84dfeaf29f38f9ac231f1b",
+    "rtl/rv64_mig_soc_top.sv": "83c836868b541f834494b9b3a3df141084bb17102577f063fa57fb1be4eadfb1",
+    "rtl/rv64_mmu.sv": "38b9cc7de61390af2ffed80ec4aa4b5143b3ea5b6031a024dc57302afe2c60c4",
+    "rtl/rv64_plic.sv": "8c26d5097179ca46869ac83365119ead168539f080157f0912d6a63026500d07",
+    "rtl/rv64_regfile.sv": "070b05421ba9d28476f04f16ef086a8ccd5c7523c1e3010ae2e418bba5e45816",
+    "rtl/rv64_startup_reset.sv": "dfe3735f508f0b2409c6dbedb73114f54ed28f9d7cde428143ae6f2e73dd30ef",
+    "rtl/rv64_uart.sv": "b6b3b9c21e1c981791b15b2ac554af9eace3691532cebe55dbcc23cdcfa532e5",
+    "constraints/rv64_ddr3_clock_frequency_probe.xdc": "b41ec36b7bf28b43c0b67a3bce830a6fd57174477fe1e8574a81712fe3898e98",
+    "constraints/rv64_ddr3_clock_probe.xdc": "b41ec36b7bf28b43c0b67a3bce830a6fd57174477fe1e8574a81712fe3898e98",
+    "constraints/rv64_led_walk_top.xdc": "05e2d4183040da2582b6da8f2cf904d9acca0efcaa9483c2b0b2310454aef6bb",
+    "constraints/rv64_mig_soc_top.xdc": "e0c239c4ab4c2e937e2f30c8bb0d9b3d480f05436dde8cda1dd1292211ca8914",
+    "ip/rv64_mig_ch0/rv64_mig_ch0/rv64_mig_ch0.xci": "cc74ddb4d958b55c19aedf24ff499c3b3b53381935f0482e6a93c30f774b0c0b",
+    "ip/rv64_mig_ch0/rv64_mig_ch0/mig.prj": "506fb4cc81fe639548564fdfabf626e6b81b914147ee8fa11e944c33017a33f6",
+    "ip/rv64_jtag_axi/rv64_jtag_axi/rv64_jtag_axi.xci": "736604408c3487fcddb53109e91a69f529bb1d2ccbd2e4d4b86b595f5db9c1d1",
+    "ip/rv64_debug_ila/rv64_debug_ila/rv64_debug_ila.xci": "f370dfd93cebb51756e16c335d05fe3be49d8437bcc8031740e0fbd608e5380e",
+    "scripts/synth-rv64-mig-project.tcl": "9a1800a69b60b8a26782d10f77c6a13bd0fb9102728c34ae5ba3c7a222fef9a9",
+    "scripts/impl-rv64-mig-checkpoint.tcl": "4a064e03f7e25721fda830e13f3847920b626889420f62f331a91b146ff96fc6"
+  },
+  "artifacts": {
+    "bitstream": {
+      "path": "build/vivado-bitstream-atomic-fault/rv64_mig_soc_top.bit",
+      "sha256": "c3a12d2efb1d10e2c5ef6bf8af7b93d3f8aad57d974595ce121bd33c0d039b10"
+    },
+    "probes": {
+      "path": "build/vivado-bitstream-atomic-fault/rv64_mig_soc_top.ltx",
+      "sha256": "5a577abbf97c65bfebe92c37e4a3ef9af07ec4f1fc9aed6f88f75cad4eefbc84"
+    },
+    "boot_rom": {
+      "path": "build/boot/boot_rom.hex",
+      "sha256": "d1a07c40af4bd7ac705816e70531d1ddf4c1296ad0543f90a24838a0e6cb94cb"
+    },
+    "payload": {
+      "path": "build/linux-applets-20260928/rv64fpga-fw_payload.bin",
+      "sha256": "039af4ddea75f59c3b0829482661649a992d2363142c902384af91619bcd0f32"
+    },
+    "symbols": {
+      "path": "build/linux-applets-20260928/System.map",
+      "sha256": "7d13c8b97cdc342742aa14fde1e588de278f2b4b1267dc08a893dcf97d0a18a9"
+    },
+    "linux_config": {
+      "path": "build/linux-applets-20260928/linux.config",
+      "sha256": "12e155aa7edae7d5c370afcc4556e3d65c74caa165651c069faf30e0d7993e22"
+    },
+    "busybox": {
+      "path": "build/linux-applets-20260928/busybox",
+      "sha256": "de06cc97f7fc022e2c4dd331c4f44598f4eced8778dd3d63159585876fdf8796"
+    }
+  }
+}

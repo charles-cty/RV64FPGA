@@ -30,11 +30,15 @@ module rv64_core (
     output logic [63:0] commit_trap_cause,
     output logic        illegal_instruction,
     output logic [1:0]  privilege_mode,
+    output logic [1:0]  data_privilege,
     output logic [63:0] satp_value,
     output logic        sum_enable,
+    output logic        mxr_enable,
     output logic        sfence_valid,
     output logic [63:0] sfence_virtual_address,
-    output logic        sfence_all
+    output logic        sfence_all,
+    output logic        fence_i_valid,
+    output logic        atomic_access
 );
   import riscv_pkg::*;
 
@@ -76,11 +80,20 @@ module rv64_core (
   logic        machine_interrupt_enable;
   logic [63:0] machine_interrupt_enable_bits;
   logic [63:0] machine_interrupt_pending_bits;
+  logic [63:0] interrupt_delegation_bits;
+  logic        supervisor_interrupt_enable;
+  logic [63:0] supervisor_interrupt_enable_bits;
+  logic [63:0] supervisor_interrupt_pending_bits;
+  logic        machine_interrupt_pending;
+  logic        supervisor_interrupt_pending;
+  logic [63:0] interrupt_cause;
   logic [63:0] machine_trap_vector;
   logic [63:0] machine_exception_pc;
   logic [63:0] trap_vector;
   logic [63:0] trap_exception_pc;
   logic trap_delegated;
+  logic        csr_access_illegal;
+  logic        csr_write_attempt;
   logic        atomic_instruction;
   logic        atomic_word_operation;
   logic        atomic_valid;
@@ -88,6 +101,46 @@ module rv64_core (
   logic [63:0] atomic_memory_write_data;
   logic [63:0] atomic_result;
   atomic_op_t  atomic_operation;
+  logic        instruction_commit;
+  logic        division_operation;
+  logic        division_signed;
+  logic        division_remainder;
+  logic        division_word;
+  logic        divider_start;
+  logic        divider_busy;
+  logic        divider_result_valid;
+  logic [63:0] divider_result;
+  logic        memory_pending;
+  logic        pending_atomic_access;
+  logic        pending_data_write;
+  logic [63:0] pending_data_address;
+  logic [63:0] pending_data_write_data;
+  logic [7:0]  pending_data_write_strobe;
+  logic        decoded_data_write;
+  logic [63:0] decoded_data_address;
+  logic [63:0] decoded_data_write_data;
+  logic [7:0]  decoded_data_write_strobe;
+  logic        memory_request_start;
+
+  assign atomic_access = memory_pending && pending_atomic_access;
+  assign instruction_commit = instruction_ready &&
+                            (!instruction_is_memory || (memory_pending && data_ready) || trap_to_machine) &&
+                            (!division_operation || divider_result_valid || trap_to_machine);
+  assign division_operation = (alu_operation == ALU_DIV) || (alu_operation == ALU_DIVU) ||
+                              (alu_operation == ALU_REM) || (alu_operation == ALU_REMU) ||
+                              (alu_operation == ALU_DIVW) || (alu_operation == ALU_DIVUW) ||
+                              (alu_operation == ALU_REMW) || (alu_operation == ALU_REMUW);
+  assign division_signed = (alu_operation == ALU_DIV) || (alu_operation == ALU_REM) ||
+                           (alu_operation == ALU_DIVW) || (alu_operation == ALU_REMW);
+  assign division_remainder = (alu_operation == ALU_REM) || (alu_operation == ALU_REMU) ||
+                              (alu_operation == ALU_REMW) || (alu_operation == ALU_REMUW);
+  assign division_word = (alu_operation == ALU_DIVW) || (alu_operation == ALU_DIVUW) ||
+                         (alu_operation == ALU_REMW) || (alu_operation == ALU_REMUW);
+  assign divider_start = instruction_ready && division_operation && !illegal_instruction &&
+                         !trap_to_machine && !divider_busy && !divider_result_valid;
+  assign memory_request_start = instruction_ready && instruction_is_memory && !memory_pending &&
+                                !illegal_instruction && !memory_misaligned && !instruction_fault &&
+                                !interrupt_pending && !trap_to_machine;
 
   logic [6:0] opcode;
   logic [4:0] rd;
@@ -98,7 +151,7 @@ module rv64_core (
   rv64_regfile register_file (
     .clk(clk),
     .reset(reset),
-    .write_enable(writeback_enable && (!instruction_is_memory || data_ready)),
+    .write_enable(writeback_enable && instruction_commit),
     .write_address(writeback_address),
     .write_data(writeback_value),
     .read_address_a(rs1),
@@ -121,11 +174,26 @@ module rv64_core (
     .immediate(immediate)
   );
 
-  rv64_alu arithmetic_unit (
+  rv64_alu #(.ITERATIVE_DIVIDE(1'b1)) arithmetic_unit (
     .lhs(register_a),
     .rhs(alu_rhs),
     .operation(alu_operation),
     .result(alu_result)
+  );
+
+  rv64_divider divider (
+    .clk(clk),
+    .reset(reset),
+    .start(divider_start),
+    .result_consumed(instruction_commit && division_operation),
+    .signed_operation(division_signed),
+    .remainder_operation(division_remainder),
+    .word_operation(division_word),
+    .dividend(register_a),
+    .divisor(register_b),
+    .busy(divider_busy),
+    .result_valid(divider_result_valid),
+    .result(divider_result)
   );
 
   rv64_csr csr_file (
@@ -133,27 +201,33 @@ module rv64_core (
     .reset(reset),
     .read_address(csr_read_address),
     .read_data(csr_read_data),
-    .write_enable(csr_write_enable),
+    .write_enable(csr_write_enable && instruction_commit),
     .write_address(csr_write_address),
     .write_data(csr_write_value),
-    .trap_to_machine(trap_to_machine),
+    .trap_to_machine(trap_to_machine && instruction_commit),
     .trap_pc(program_counter),
     .trap_cause(trap_cause),
     .trap_value(trap_value),
     .current_privilege(privilege_mode),
-    .return_from_machine(return_from_machine),
-    .return_from_supervisor(return_from_supervisor),
+    .return_from_machine(return_from_machine && instruction_commit),
+    .return_from_supervisor(return_from_supervisor && instruction_commit),
     .software_interrupt(software_interrupt),
     .timer_interrupt(timer_interrupt),
     .external_interrupt(external_interrupt),
     .machine_interrupt_enable(machine_interrupt_enable),
     .machine_interrupt_enable_bits(machine_interrupt_enable_bits),
     .machine_interrupt_pending_bits(machine_interrupt_pending_bits),
+    .interrupt_delegation_bits(interrupt_delegation_bits),
+    .supervisor_interrupt_enable(supervisor_interrupt_enable),
+    .supervisor_interrupt_enable_bits(supervisor_interrupt_enable_bits),
+    .supervisor_interrupt_pending_bits(supervisor_interrupt_pending_bits),
     .machine_trap_vector(machine_trap_vector),
     .machine_exception_pc(machine_exception_pc),
     .privilege_mode(privilege_mode),
+    .data_privilege(data_privilege),
     .satp_value(satp_value),
     .sum_enable(sum_enable),
+    .mxr_enable(mxr_enable),
     .trap_vector(trap_vector),
     .trap_exception_pc(trap_exception_pc),
     .trap_delegated(trap_delegated)
@@ -162,13 +236,13 @@ module rv64_core (
   rv64_atomic_unit atomic_unit (
     .clk(clk),
     .reset(reset),
-    .execute(atomic_valid && !memory_misaligned),
+    .execute(atomic_valid && memory_pending),
     .operation(atomic_operation),
     .word_operation(atomic_word_operation),
     .address(register_a),
     .source_data(register_b),
     .memory_read_data(data_read_data),
-    .memory_ready(data_ready),
+    .memory_ready(instruction_commit && !trap_to_machine),
     .memory_valid(),
     .memory_write(atomic_memory_write),
     .memory_write_data(atomic_memory_write_data),
@@ -204,10 +278,41 @@ module rv64_core (
     trap_to_machine = 1'b0;
     trap_cause = 64'd2;
     trap_value = {32'b0, instruction_data};
-    interrupt_pending = machine_interrupt_enable &&
-      ((machine_interrupt_enable_bits[3] && machine_interrupt_pending_bits[3]) ||
-       (machine_interrupt_enable_bits[7] && machine_interrupt_pending_bits[7]) ||
-       (machine_interrupt_enable_bits[11] && machine_interrupt_pending_bits[11]));
+    // A higher-privilege interrupt is globally enabled while lower-privilege
+    // code runs, regardless of that higher level's xIE bit.  At the same
+    // privilege level xIE applies.  Machine interrupts take precedence over
+    // supervisor interrupts.
+    machine_interrupt_pending = ((privilege_mode != 2'b11) || machine_interrupt_enable) &&
+      (((machine_interrupt_enable_bits[11] && machine_interrupt_pending_bits[11]) && !interrupt_delegation_bits[11]) ||
+       ((machine_interrupt_enable_bits[3] && machine_interrupt_pending_bits[3]) && !interrupt_delegation_bits[3]) ||
+       ((machine_interrupt_enable_bits[7] && machine_interrupt_pending_bits[7]) && !interrupt_delegation_bits[7]) ||
+       ((machine_interrupt_enable_bits[9] && machine_interrupt_pending_bits[9]) && !interrupt_delegation_bits[9]) ||
+       ((machine_interrupt_enable_bits[1] && machine_interrupt_pending_bits[1]) && !interrupt_delegation_bits[1]) ||
+       ((machine_interrupt_enable_bits[5] && machine_interrupt_pending_bits[5]) && !interrupt_delegation_bits[5]));
+    supervisor_interrupt_pending = (privilege_mode != 2'b11) &&
+      ((privilege_mode == 2'b00) || supervisor_interrupt_enable) &&
+      (((supervisor_interrupt_enable_bits[9] && supervisor_interrupt_pending_bits[9])) ||
+       ((supervisor_interrupt_enable_bits[1] && supervisor_interrupt_pending_bits[1])) ||
+       ((supervisor_interrupt_enable_bits[5] && supervisor_interrupt_pending_bits[5])));
+    interrupt_pending = machine_interrupt_pending || supervisor_interrupt_pending;
+    interrupt_cause = 64'h8000_0000_0000_0005;
+    if (machine_interrupt_pending) begin
+      if (machine_interrupt_enable_bits[11] && machine_interrupt_pending_bits[11] && !interrupt_delegation_bits[11])
+        interrupt_cause = 64'h8000_0000_0000_000b;
+      else if (machine_interrupt_enable_bits[3] && machine_interrupt_pending_bits[3] && !interrupt_delegation_bits[3])
+        interrupt_cause = 64'h8000_0000_0000_0003;
+      else if (machine_interrupt_enable_bits[7] && machine_interrupt_pending_bits[7] && !interrupt_delegation_bits[7])
+        interrupt_cause = 64'h8000_0000_0000_0007;
+      else if (machine_interrupt_enable_bits[9] && machine_interrupt_pending_bits[9] && !interrupt_delegation_bits[9])
+        interrupt_cause = 64'h8000_0000_0000_0009;
+      else if (machine_interrupt_enable_bits[1] && machine_interrupt_pending_bits[1] && !interrupt_delegation_bits[1])
+        interrupt_cause = 64'h8000_0000_0000_0001;
+    end else if (supervisor_interrupt_pending) begin
+      if (supervisor_interrupt_enable_bits[9] && supervisor_interrupt_pending_bits[9])
+        interrupt_cause = 64'h8000_0000_0000_0009;
+      else if (supervisor_interrupt_enable_bits[1] && supervisor_interrupt_pending_bits[1])
+        interrupt_cause = 64'h8000_0000_0000_0001;
+    end
     next_program_counter = program_counter + 64'd4;
     instruction_is_memory = 1'b0;
     instruction_is_store = 1'b0;
@@ -228,6 +333,15 @@ module rv64_core (
     sfence_valid = 1'b0;
     sfence_virtual_address = register_a;
     sfence_all = 1'b0;
+    fence_i_valid = 1'b0;
+    csr_write_attempt = (funct3 == 3'b001) ||
+                        ((funct3 == 3'b010 || funct3 == 3'b011) && rs1 != 5'd0) ||
+                        (funct3 == 3'b101) ||
+                        ((funct3 == 3'b110 || funct3 == 3'b111) && rs1 != 5'd0);
+    csr_access_illegal = !csr_implemented(instruction_data[31:20]) ||
+                         (privilege_mode < instruction_data[29:28]) ||
+                         (instruction_data[29:28] == 2'b10) ||
+                         (csr_write_attempt && instruction_data[31:30] == 2'b11);
 
     unique case (opcode)
       7'b0110111: begin
@@ -357,22 +471,43 @@ module rv64_core (
         writeback_value = atomic_result;
         writeback_address = rd;
       end
+      7'b0001111: begin
+        illegal_instruction = (funct3 != 3'b000) && (funct3 != 3'b001);
+        fence_i_valid = funct3 == 3'b001 && !illegal_instruction;
+      end
       7'b1110011: begin
         if ((instruction_data[31:25] == 7'b0001001) &&
             (funct3 == 3'b000)) begin
-          illegal_instruction = 1'b0;
-          sfence_valid = 1'b1;
-          sfence_all = rs1 == 5'd0;
+          if (privilege_mode != 2'b00) begin
+            illegal_instruction = 1'b0;
+            sfence_valid = 1'b1;
+            sfence_all = rs1 == 5'd0;
+          end
         end else if (instruction_data == 32'h3020_0073) begin
-          illegal_instruction = 1'b0;
-          return_from_machine = 1'b1;
-          csr_read_address = 12'h341;
-          next_program_counter = csr_read_data;
+          if (privilege_mode == 2'b11) begin
+            illegal_instruction = 1'b0;
+            return_from_machine = 1'b1;
+            csr_read_address = 12'h341;
+            next_program_counter = csr_read_data;
+          end
         end else if (instruction_data == 32'h1020_0073) begin
+          if (privilege_mode != 2'b00) begin
+            illegal_instruction = 1'b0;
+            return_from_supervisor = 1'b1;
+            csr_read_address = 12'h141;
+            next_program_counter = csr_read_data;
+          end
+        end else if (instruction_data == 32'h1050_0073) begin
           illegal_instruction = 1'b0;
-          return_from_supervisor = 1'b1;
-          csr_read_address = 12'h141;
-          next_program_counter = csr_read_data;
+        end else if (instruction_data == 32'h0010_0073) begin
+          // EBREAK is a synchronous breakpoint exception (cause 3).  It is
+          // used by OpenSBI's semihosting probe; treating it as an illegal
+          // instruction leaves the probe at the same PC forever because the
+          // supervisor trap handler only handles the breakpoint cause.
+          illegal_instruction = 1'b0;
+          trap_to_machine = 1'b1;
+          trap_cause = 64'd3;
+          next_program_counter = trap_vector;
         end else if (instruction_data == 32'h0000_0073) begin
           illegal_instruction = 1'b0;
           trap_to_machine = 1'b1;
@@ -380,30 +515,34 @@ module rv64_core (
                        (privilege_mode == 2'b01 ? 64'd9 : 64'd8);
           next_program_counter = trap_vector;
         end else if ((funct3 >= 3'b001) && (funct3 <= 3'b011)) begin
-          illegal_instruction = 1'b0;
-          writeback_enable = 1'b1;
-          csr_read_address = instruction_data[31:20];
-          writeback_value = csr_read_data;
-          csr_write_enable = rs1 != 5'd0 || funct3 == 3'b001;
-          if (funct3 == 3'b001) begin
-            csr_write_value = register_a;
-          end else if (funct3 == 3'b010) begin
-            csr_write_value = csr_read_data | register_a;
-          end else begin
-            csr_write_value = csr_read_data & ~register_a;
+          if (!csr_access_illegal) begin
+            illegal_instruction = 1'b0;
+            writeback_enable = 1'b1;
+            csr_read_address = instruction_data[31:20];
+            writeback_value = csr_read_data;
+            csr_write_enable = rs1 != 5'd0 || funct3 == 3'b001;
+            if (funct3 == 3'b001) begin
+              csr_write_value = register_a;
+            end else if (funct3 == 3'b010) begin
+              csr_write_value = csr_read_data | register_a;
+            end else begin
+              csr_write_value = csr_read_data & ~register_a;
+            end
           end
         end else if ((funct3 >= 3'b101) && (funct3 <= 3'b111)) begin
-          illegal_instruction = 1'b0;
-          writeback_enable = 1'b1;
-          csr_read_address = instruction_data[31:20];
-          writeback_value = csr_read_data;
-          csr_write_enable = rs1 != 5'd0 || funct3 == 3'b101;
-          if (funct3 == 3'b101) begin
-            csr_write_value = {59'b0, rs1};
-          end else if (funct3 == 3'b110) begin
-            csr_write_value = csr_read_data | {59'b0, rs1};
-          end else begin
-            csr_write_value = csr_read_data & ~{59'b0, rs1};
+          if (!csr_access_illegal) begin
+            illegal_instruction = 1'b0;
+            writeback_enable = 1'b1;
+            csr_read_address = instruction_data[31:20];
+            writeback_value = csr_read_data;
+            csr_write_enable = rs1 != 5'd0 || funct3 == 3'b101;
+            if (funct3 == 3'b101) begin
+              csr_write_value = {59'b0, rs1};
+            end else if (funct3 == 3'b110) begin
+              csr_write_value = csr_read_data | {59'b0, rs1};
+            end else begin
+              csr_write_value = csr_read_data & ~{59'b0, rs1};
+            end
           end
         end
       end
@@ -453,32 +592,42 @@ module rv64_core (
       trap_to_machine = 1'b1;
       illegal_instruction = 1'b0;
       writeback_enable = 1'b0;
-      data_valid = 1'b0;
-      data_write = 1'b0;
-      trap_cause = instruction_is_store ? 64'd15 : 64'd13;
+      // SC and read-modify-write AMOs need store fault handling (including
+      // Linux COW). Only LR reports a load page fault among atomic opcodes.
+      trap_cause = (instruction_is_store ||
+                    (atomic_instruction && atomic_operation != ATOMIC_LR)) ? 64'd15 : 64'd13;
       trap_value = effective_address;
       next_program_counter = trap_vector;
     end
 
-    if (interrupt_pending) begin
+    if (interrupt_pending && !trap_to_machine && !memory_pending) begin
       trap_to_machine = 1'b1;
       illegal_instruction = 1'b0;
       writeback_enable = 1'b0;
       csr_write_enable = 1'b0;
       data_valid = 1'b0;
       next_program_counter = trap_vector;
-      if (machine_interrupt_pending_bits[11] && machine_interrupt_enable_bits[11]) begin
-        trap_cause = 64'h8000_0000_0000_000b;
-      end else if (machine_interrupt_pending_bits[7] && machine_interrupt_enable_bits[7]) begin
-        trap_cause = 64'h8000_0000_0000_0007;
-      end else begin
-        trap_cause = 64'h8000_0000_0000_0003;
-      end
+      trap_cause = interrupt_cause;
     end
 
     if (instruction_is_memory && instruction_is_store && !atomic_instruction) begin
       data_write_data = register_b;
     end
+
+    if (division_operation) begin
+      writeback_value = divider_result;
+    end
+
+    decoded_data_write = data_write;
+    decoded_data_address = data_address;
+    decoded_data_write_data = data_write_data;
+    decoded_data_write_strobe = data_write_strobe;
+    data_valid = memory_pending;
+    data_write = memory_pending ?
+                 (pending_atomic_access ? atomic_memory_write : pending_data_write) : 1'b0;
+    data_address = pending_data_address;
+    data_write_data = pending_atomic_access ? atomic_memory_write_data : pending_data_write_data;
+    data_write_strobe = pending_data_write_strobe;
   end
 
   always_ff @(posedge clk) begin
@@ -496,9 +645,27 @@ module rv64_core (
       commit_csr_value <= '0;
       commit_trap_valid <= 1'b0;
       commit_trap_cause <= '0;
+      memory_pending <= 1'b0;
+      pending_atomic_access <= 1'b0;
+      pending_data_write <= 1'b0;
+      pending_data_address <= '0;
+      pending_data_write_data <= '0;
+      pending_data_write_strobe <= '0;
     end else begin
       commit_valid <= 1'b0;
-      if (instruction_ready && (!instruction_is_memory || data_ready || trap_to_machine)) begin
+      if (memory_pending) begin
+        if (instruction_commit) begin
+          memory_pending <= 1'b0;
+        end
+      end else if (memory_request_start) begin
+        memory_pending <= 1'b1;
+        pending_atomic_access <= atomic_instruction;
+        pending_data_write <= decoded_data_write;
+        pending_data_address <= decoded_data_address;
+        pending_data_write_data <= decoded_data_write_data;
+        pending_data_write_strobe <= decoded_data_write_strobe;
+      end
+      if (instruction_commit) begin
         program_counter <= next_program_counter;
         commit_valid <= 1'b1;
         commit_pc <= program_counter;

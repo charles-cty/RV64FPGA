@@ -9,7 +9,12 @@ module tb_rv64_bram_soc_ddr3_instruction;
   integer index;
   integer cycle_count;
 
-  rv64_bram_soc #(.USE_DDR3_MODEL(1'b1), .DDR3_MODEL_RESPONSE_DELAY(3)) dut (.*);
+  rv64_bram_soc #(.USE_DDR3_MODEL(1'b1), .DDR3_MODEL_RESPONSE_DELAY(3)) dut (
+    .clk(clk), .reset(reset), .led(led), .uart_tx(uart_tx), .uart_rx(1'b1),
+    .external_ddr3_request_ready(1'b0),
+    .external_ddr3_response_read_data(64'b0),
+    .external_ddr3_response_error(1'b0)
+  );
   always #5 clk = ~clk;
 
   initial begin

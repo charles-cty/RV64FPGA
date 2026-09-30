@@ -27,7 +27,7 @@ The recipe rejects a different file. The selected configuration is:
 | DDR I/O | 15 row-address bits, 10 column-address bits, 3 bank bits |
 
 The C0 configuration and its I/O assignments originate from
-`C:\My\Projects\FPGA\docs\LC480T\vivado 板卡文件\ypcb_00338_1p1_hack-main\ypcb003381p1\1.0\mig_0.prj`.
+`C:\My\Projects\FPGA\LC480T\vivado 板卡文件\ypcb_00338_1p1_hack-main\ypcb003381p1\1.0\mig_0.prj`.
 It must remain an externally supplied board input until its licence permits
 checking it into this repository.
 
@@ -39,7 +39,7 @@ and all settings listed above; it does not invoke Vivado.
 ```bash
 pwsh.exe -WorkingDirectory 'C:\Windows\Temp' \
   -File "$(wslpath -w scripts/create-mig-ip.ps1)" \
-  -BoardConfig "$(wslpath -w '/mnt/c/My/Projects/FPGA/docs/LC480T/vivado 板卡文件/ypcb_00338_1p1_hack-main/ypcb003381p1/1.0/mig_0.prj')" \
+  -BoardConfig "$(wslpath -w '/mnt/c/My/Projects/FPGA/LC480T/vivado 板卡文件/ypcb_00338_1p1_hack-main/ypcb003381p1/1.0/mig_0.prj')" \
   -OutputDirectory 'C:\My\Projects\RV64FPGA\ip\rv64_mig_ch0'
 ```
 
@@ -59,7 +59,7 @@ recipe contains no `synth_design`, `launch_runs`, `implement`,
 ```bash
 pwsh.exe -WorkingDirectory 'C:\Windows\Temp' \
   -File "$(wslpath -w scripts/create-mig-ip.ps1)" \
-  -BoardConfig "$(wslpath -w '/mnt/c/My/Projects/FPGA/docs/LC480T/vivado 板卡文件/ypcb_00338_1p1_hack-main/ypcb003381p1/1.0/mig_0.prj')" \
+  -BoardConfig "$(wslpath -w '/mnt/c/My/Projects/FPGA/LC480T/vivado 板卡文件/ypcb_00338_1p1_hack-main/ypcb003381p1/1.0/mig_0.prj')" \
   -OutputDirectory 'C:\My\Projects\RV64FPGA\ip\rv64_mig_ch0' \
   -Generate
 ```

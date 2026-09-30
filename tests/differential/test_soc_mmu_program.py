@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT / "tools" / "iss"))
 from soc_mmu_fault_program import generate_fetch_trace, generate_load_trace, generate_store_trace
 from soc_mmu_program import generate_trace, make_pte
 from soc_mmu_sum_program import DATA_VALUE, generate_sum_off_trace, generate_sum_on_trace
+from soc_mmu_tlb_program import generate_trace as generate_tlb_trace
 from soc_mmu_user_program import DATA_VALUE as USER_DATA_VALUE
 from soc_mmu_user_program import generate_supervisor_data_trace, generate_supervisor_fetch_trace, generate_user_data_trace
 from sv39 import PageFault, Sv39Reference
@@ -121,6 +122,17 @@ class SocMmuProgramTraceTest(unittest.TestCase):
         self.assertEqual(trace[-1]["trap_cause"], "0x000000000000000c")
         self.assertEqual(trace[-1]["trap_value"], "0x0000000000000100")
         self.assertEqual(trace[-1]["privilege"], 3)
+
+    def test_targeted_sfence_and_satp_switch_change_translations(self) -> None:
+        trace = generate_tlb_trace()
+
+        self.assertEqual(len(trace), 25)
+        self.assertEqual(trace[11]["rd_value"], "0x1111111111111111")
+        self.assertEqual(trace[16]["instruction"], "0x12018073")
+        self.assertEqual(trace[17]["rd_value"], "0x2222222222222222")
+        self.assertEqual(trace[21]["instruction"], "0x18049073")
+        self.assertEqual(trace[22]["instruction"], "0x12000073")
+        self.assertEqual(trace[23]["rd_value"], "0x3333333333333333")
 
 
 if __name__ == "__main__":

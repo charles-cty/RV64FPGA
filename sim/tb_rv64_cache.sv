@@ -3,6 +3,7 @@
 module tb_rv64_cache;
   logic clk;
   logic reset;
+  logic invalidate;
   logic request_valid;
   logic request_ready;
   logic request_write;
@@ -11,6 +12,7 @@ module tb_rv64_cache;
   logic [7:0] request_write_strobe;
   logic response_valid;
   logic [63:0] response_read_data;
+  logic response_ready;
   logic memory_valid;
   logic memory_ready;
   logic memory_write;
@@ -24,6 +26,7 @@ module tb_rv64_cache;
   integer write_index;
   integer backend_reads;
   integer backend_writes;
+  logic [63:0] last_backend_address;
 
   rv64_cache #(.LINE_COUNT(4)) dut (.*);
   always #5 clk = ~clk;
@@ -35,6 +38,7 @@ module tb_rv64_cache;
 
   always @(posedge clk) begin
     if (memory_valid && memory_ready) begin
+      last_backend_address <= memory_address;
       if (memory_write) begin
         backend_writes <= backend_writes + 1;
         for (write_index = 0; write_index < 8; write_index = write_index + 1) begin
@@ -91,14 +95,17 @@ module tb_rv64_cache;
   initial begin
     clk = 1'b0;
     reset = 1'b1;
+    invalidate = 1'b0;
     request_valid = 1'b0;
     request_write = 1'b0;
     request_address = '0;
     request_write_data = '0;
     request_write_strobe = '0;
     failures = 0;
+    response_ready = 1'b1;
     backend_reads = 0;
     backend_writes = 0;
+    last_backend_address = '0;
     for (index = 0; index < 64; index = index + 1) begin
       memory[index] = 64'h1000_0000_0000_0000 + index;
     end
@@ -106,9 +113,14 @@ module tb_rv64_cache;
     @(posedge clk);
     #1;
     reset = 1'b0;
-    load(64'h0000_0000_0000_0018, memory[3]);
+    load(64'h0000_0000_0000_001c, memory[3]);
     if (backend_reads != 1) begin
       $display("FAIL initial read miss count=%0d", backend_reads);
+      failures = failures + 1;
+    end
+    if (last_backend_address != 64'h0000_0000_0000_0018) begin
+      $display("FAIL upper-word read miss was not line-aligned: address=%h",
+               last_backend_address);
       failures = failures + 1;
     end
     load(64'h0000_0000_0000_0018, memory[3]);
@@ -123,6 +135,10 @@ module tb_rv64_cache;
     end
     load(64'h0000_0000_0000_0018, 64'hdead_beef_1122_3344);
     store(64'h0000_0000_0000_0019, 64'h0000_0000_0000_aa00, 8'h02);
+    if (last_backend_address != 64'h0000_0000_0000_0018) begin
+      $display("FAIL byte write was not line-aligned: address=%h", last_backend_address);
+      failures = failures + 1;
+    end
     if (memory[3] !== 64'hdead_beef_1122_aa44) begin
       $display("FAIL byte write memory got=%h", memory[3]);
       failures = failures + 1;
@@ -138,6 +154,14 @@ module tb_rv64_cache;
     end
     if (backend_writes != 3) begin
       $display("FAIL write-through count=%0d", backend_writes);
+      failures = failures + 1;
+    end
+    invalidate = 1'b1;
+    @(posedge clk);
+    #1;
+    invalidate = 1'b0;
+    if (dut.line_valid !== '0) begin
+      $display("FAIL invalidate did not clear cache lines: valid=%b", dut.line_valid);
       failures = failures + 1;
     end
 

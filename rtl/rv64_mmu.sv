@@ -6,11 +6,15 @@ module rv64_mmu (
   input  riscv_pkg::mmu_access_t access,
   input  logic [1:0]             privilege,
   input  logic                   sum_enable,
+  input  logic                   mxr_enable,
   input  logic [63:0]            satp,
   output logic                   pte_request,
   output logic [63:0]            pte_address,
   input  logic [63:0]            pte_read_data,
   input  logic                   pte_ready,
+  output logic                   pte_update_valid,
+  output logic [63:0]            pte_update_address,
+  output logic [63:0]            pte_update_data,
   input  logic                   sfence_valid,
   input  logic                   sfence_all,
   input  logic [63:0]            sfence_virtual_address,
@@ -27,6 +31,7 @@ module rv64_mmu (
   mmu_access_t request_access;
   logic [1:0] request_privilege;
   logic request_sum;
+  logic request_mxr;
   logic [1:0] level;
   logic [63:0] table_base;
   logic [63:0] tlb_satp;
@@ -39,6 +44,7 @@ module rv64_mmu (
   logic tlb_match_valid;
   logic [63:0] tlb_match_physical;
   logic tlb_match_permission;
+  logic [63:0] updated_pte_value;
   integer tlb_comb_index;
   integer tlb_seq_index;
   function automatic logic canonical_sv39(input logic [63:0] address);
@@ -58,7 +64,7 @@ module rv64_mmu (
       end
       permission_ok = entry[0] && !(entry[1] == 1'b0 && entry[2] == 1'b1) &&
                       ((request_access == MMU_FETCH && entry[3]) ||
-                       (request_access == MMU_LOAD && entry[1]) ||
+                       (request_access == MMU_LOAD && (entry[1] || (request_mxr && entry[3]))) ||
                        (request_access == MMU_STORE && entry[2])) &&
                       privilege_ok;
     end
@@ -68,7 +74,8 @@ module rv64_mmu (
     input logic [7:0] flags,
     input mmu_access_t target_access,
     input logic [1:0] target_privilege,
-    input logic target_sum
+    input logic target_sum,
+    input logic target_mxr
   );
     logic privilege_ok;
     begin
@@ -82,12 +89,17 @@ module rv64_mmu (
       end
       cached_permission_ok = flags[0] && !(flags[1] == 1'b0 && flags[2] == 1'b1) &&
                              ((target_access == MMU_FETCH && flags[3]) ||
-                              (target_access == MMU_LOAD && flags[1]) ||
+                              (target_access == MMU_LOAD && (flags[1] || (target_mxr && flags[3]))) ||
                               (target_access == MMU_STORE && flags[2])) &&
                              privilege_ok && flags[6] &&
                              ((target_access != MMU_STORE) || flags[7]);
     end
   endfunction
+
+  always_comb begin
+    updated_pte_value = pte_read_data | 64'h0000_0000_0000_0040 |
+                        ((request_access == MMU_STORE) ? 64'h0000_0000_0000_0080 : 64'b0);
+  end
 
   always_comb begin
     busy = state != IDLE;
@@ -109,6 +121,8 @@ module rv64_mmu (
         (satp == tlb_satp)) begin
       for (tlb_comb_index = 0; tlb_comb_index < 4; tlb_comb_index = tlb_comb_index + 1) begin
         if (tlb_valid[tlb_comb_index] &&
+            tlb_flags[tlb_comb_index][6] &&
+            ((access != MMU_STORE) || tlb_flags[tlb_comb_index][7]) &&
             ((tlb_level[tlb_comb_index] == 2 &&
               tlb_vpn[tlb_comb_index][26:18] == virtual_address[38:30]) ||
              (tlb_level[tlb_comb_index] == 1 &&
@@ -117,7 +131,7 @@ module rv64_mmu (
               tlb_vpn[tlb_comb_index] == virtual_address[38:12]))) begin
           tlb_match_valid = 1'b1;
           tlb_match_permission = cached_permission_ok(
-            tlb_flags[tlb_comb_index], access, privilege, sum_enable);
+            tlb_flags[tlb_comb_index], access, privilege, sum_enable, mxr_enable);
           if (tlb_level[tlb_comb_index] == 2) begin
             tlb_match_physical = {8'b0, tlb_ppn[tlb_comb_index][43:18], virtual_address[29:0]};
           end else if (tlb_level[tlb_comb_index] == 1) begin
@@ -135,11 +149,15 @@ module rv64_mmu (
       state <= IDLE;
       translation_done <= 1'b0;
       translation_fault <= 1'b0;
+      pte_update_valid <= 1'b0;
+      pte_update_address <= '0;
+      pte_update_data <= '0;
       physical_address <= '0;
       request_virtual_address <= '0;
       request_access <= MMU_FETCH;
       request_privilege <= 2'b11;
       request_sum <= 1'b0;
+      request_mxr <= 1'b0;
       level <= '0;
       table_base <= '0;
       tlb_satp <= '0;
@@ -154,6 +172,7 @@ module rv64_mmu (
     end else begin
       translation_done <= 1'b0;
       translation_fault <= 1'b0;
+      pte_update_valid <= 1'b0;
 
       if (satp != tlb_satp) begin
         tlb_satp <= satp;
@@ -183,6 +202,7 @@ module rv64_mmu (
         request_access <= access;
         request_privilege <= privilege;
         request_sum <= sum_enable;
+        request_mxr <= mxr_enable;
         if (privilege == 2'b11 || satp[63:60] == 4'h0) begin
           physical_address <= virtual_address;
           translation_done <= 1'b1;
@@ -208,12 +228,17 @@ module rv64_mmu (
           translation_done <= 1'b1;
           state <= IDLE;
         end else if (pte_read_data[1] || pte_read_data[3]) begin
-          if (!permission_ok(pte_read_data) || !pte_read_data[6] ||
+          if (!permission_ok(pte_read_data) ||
               ((level == 2) && (pte_read_data[27:10] != 18'b0)) ||
-              ((level == 1) && (pte_read_data[18:10] != 9'b0)) ||
-              ((request_access == MMU_STORE) && !pte_read_data[7])) begin
+              ((level == 1) && (pte_read_data[18:10] != 9'b0))) begin
             translation_fault <= 1'b1;
           end else begin
+            if (!pte_read_data[6] ||
+                ((request_access == MMU_STORE) && !pte_read_data[7])) begin
+              pte_update_valid <= 1'b1;
+              pte_update_address <= pte_address;
+              pte_update_data <= updated_pte_value;
+            end
             physical_address <= {8'b0, pte_read_data[53:10], request_virtual_address[11:0]};
             if (level == 2) begin
               physical_address <= {8'b0, pte_read_data[53:28], request_virtual_address[29:0]};
@@ -224,7 +249,7 @@ module rv64_mmu (
             tlb_vpn[tlb_replacement] <= request_virtual_address[38:12];
             tlb_ppn[tlb_replacement] <= pte_read_data[53:10];
             tlb_level[tlb_replacement] <= level;
-            tlb_flags[tlb_replacement] <= pte_read_data[7:0];
+            tlb_flags[tlb_replacement] <= updated_pte_value[7:0];
             tlb_replacement <= tlb_replacement + 1'b1;
           end
           translation_done <= 1'b1;

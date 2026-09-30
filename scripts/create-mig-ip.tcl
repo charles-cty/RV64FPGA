@@ -30,5 +30,33 @@ set_property -dict [list \
 
 generate_target all $mig_ip
 export_ip_user_files -of_objects $mig_ip -no_script -force
-report_ip_status -name ${module_name}_ip_status -of_objects $mig_ip
+
+proc collect_verilog_files {directory} {
+    set files {}
+    foreach entry [glob -nocomplain -directory $directory *] {
+        if {[file isdirectory $entry]} {
+            lappend files {*}[collect_verilog_files $entry]
+        } elseif {[string match *.v $entry]} {
+            lappend files $entry
+        }
+    }
+    return $files
+}
+
+foreach generated_file [collect_verilog_files $output_directory] {
+    set input [open $generated_file r]
+    fconfigure $input -translation binary
+    set contents [read $input]
+    close $input
+    set updated [string map {
+        {parameter DIFF_TERM_SYSCLK = "TRUE"} {parameter DIFF_TERM_SYSCLK = "FALSE"}
+        {parameter DIFF_TERM_SYSCLK      = "TRUE"} {parameter DIFF_TERM_SYSCLK      = "FALSE"}
+    } $contents]
+    if {$updated ne $contents} {
+        set output [open $generated_file w]
+        fconfigure $output -translation binary
+        puts -nonewline $output $updated
+        close $output
+    }
+}
 close_project

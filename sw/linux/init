@@ -1,0 +1,43 @@
+#!/bin/busybox sh
+
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+
+log() {
+  echo "RV64FPGA $*" > /dev/kmsg
+  echo "RV64FPGA $*" > /dev/console
+}
+
+fail() {
+  log "USERSPACE_CHECK_FAIL $*"
+  while :; do sleep 5; done
+}
+
+mount -t devtmpfs devtmpfs /dev || fail devtmpfs_mount
+mount -t proc proc /proc || fail proc_mount
+mount -t sysfs sysfs /sys || fail sysfs_mount
+mount -t tmpfs tmpfs /tmp || fail tmpfs_mount
+log "initramfs booted"
+read before rest < /proc/uptime || fail proc_read
+sleep 1 || fail sleep
+read after rest < /proc/uptime || fail proc_read_after_sleep
+test "$before" != "$after" || fail timer_progress
+log "timer progressed: $before -> $after"
+
+# Exercise shell fork/exec/wait and a writable RAM filesystem before entering
+# the console. Report through printk too, so JTAG can recover these checks.
+for child in 1 2 3 4; do
+  /bin/sh -c 'echo child-ok' > /tmp/child-result || fail child_exec
+  read result < /tmp/child-result || fail tmpfs_read
+  test "$result" = child-ok || fail child_result
+done
+log "USERSPACE_CHECK_PASS proc sysfs tmpfs sleep fork exec wait"
+# Keep PID 1 alive even if the console shell cannot be started.  A PID-1 exit
+# makes Linux call panic("Attempted to kill init"), which hides whether the
+# kernel actually reached userspace.  The shell remains interactive when a
+# console is available; the fallback heartbeat gives the FPGA bring-up a
+# deterministic userspace-visible UART activity otherwise.
+/bin/sh -i </dev/console >/dev/console 2>&1 || true
+while :; do
+  log "userspace alive"
+  sleep 5
+done

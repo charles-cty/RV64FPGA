@@ -75,13 +75,14 @@ try {
     )
     & $VivadoBat @vivadoArguments
 
-    $generatedXci = Join-Path $stagedOutput 'rv64_mig_ch0.xci'
-    if (-not (Test-Path -LiteralPath $generatedXci -PathType Leaf)) {
-        throw "Vivado completed without generating the expected XCI: $generatedXci"
+    $generatedXci = @(Get-ChildItem -LiteralPath $stagedOutput -Filter 'rv64_mig_ch0.xci' -File -Recurse)
+    if ($generatedXci.Count -ne 1) {
+        throw "Vivado completed without generating exactly one expected XCI under: $stagedOutput"
     }
 
+    $relativeXci = [IO.Path]::GetRelativePath($stagedOutput, $generatedXci[0].FullName)
     Copy-Item -LiteralPath $stagedOutput -Destination $OutputDirectory -Recurse
-    "MIG_IP_GENERATED`t$OutputDirectory\rv64_mig_ch0.xci"
+    "MIG_IP_GENERATED`t$(Join-Path $OutputDirectory $relativeXci)"
 }
 finally {
     if (Test-Path -LiteralPath $workDirectory) {

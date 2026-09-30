@@ -32,16 +32,21 @@ module tb_rv64_core;
   logic [63:0] commit_trap_cause;
   logic illegal_instruction;
   logic [1:0] privilege_mode;
+  logic [1:0] data_privilege;
   logic [63:0] satp_value;
   logic sum_enable;
+  logic mxr_enable;
   logic sfence_valid;
   logic [63:0] sfence_virtual_address;
   logic sfence_all;
+  logic fence_i_valid;
+  logic atomic_access;
   logic [31:0] instruction_memory [0:31];
   logic [63:0] data_memory [0:15];
   integer trace_file;
   integer failures;
   integer commit_count;
+  integer cycle_count;
   integer index;
   integer byte_index;
 
@@ -110,7 +115,8 @@ module tb_rv64_core;
     #1;
     reset = 1'b0;
 
-    repeat (10) begin
+    for (cycle_count = 0; cycle_count < 24 && commit_count < 10;
+         cycle_count = cycle_count + 1) begin
       @(posedge clk);
       #1;
       if (commit_valid) begin
@@ -119,18 +125,23 @@ module tb_rv64_core;
         end else begin
           $fdisplay(trace_file, "{\"pc\":\"0x%016h\",\"instruction\":\"0x%08h\",\"next_pc\":\"0x%016h\",\"rd\":%0d,\"rd_value\":null}", commit_pc, commit_instruction, commit_next_pc, commit_rd);
         end
+        case (commit_count)
+          0: expect_commit("addi x1", 64'd0);
+          1: expect_commit("addi x2", 64'd4);
+          2: expect_commit("add x3", 64'd8);
+          3: expect_commit("store", 64'd12);
+          4: expect_commit("load", 64'd16);
+          5: expect_commit("taken branch", 64'd20);
+          6: expect_commit("jal", 64'd28);
+          7: expect_commit("target addi", 64'd36);
+          default: expect_commit("post-program nop", commit_pc);
+        endcase
       end
-      case (commit_count)
-        0: expect_commit("addi x1", 64'd0);
-        1: expect_commit("addi x2", 64'd4);
-        2: expect_commit("add x3", 64'd8);
-        3: expect_commit("store", 64'd12);
-        4: expect_commit("load", 64'd16);
-        5: expect_commit("taken branch", 64'd20);
-        6: expect_commit("jal", 64'd28);
-        7: expect_commit("target addi", 64'd36);
-        default: expect_commit("post-program nop", commit_pc);
-      endcase
+    end
+
+    if (commit_count != 10) begin
+      $display("FAIL core timeout: commits=%0d cycles=%0d", commit_count, cycle_count);
+      failures = failures + 1;
     end
 
     if (dut.register_file.registers[3] !== 64'd12) begin
@@ -154,9 +165,10 @@ module tb_rv64_core;
       $fclose(trace_file);
       $display("SIM FAIL: %0d core checks failed", failures);
       $fatal(1);
+    end else begin
+      $fclose(trace_file);
+      $display("SIM PASS: rv64_core BRAM program regression");
     end
-    $fclose(trace_file);
-    $display("SIM PASS: rv64_core BRAM program regression");
     $finish;
   end
 endmodule

@@ -1,4 +1,6 @@
-module rv64_alu (
+module rv64_alu #(
+  parameter logic ITERATIVE_DIVIDE = 1'b0
+) (
   input  logic [63:0]        lhs,
   input  logic [63:0]        rhs,
   input  riscv_pkg::alu_op_t operation,
@@ -43,7 +45,9 @@ module rv64_alu (
       ALU_MULH: result = product_signed_signed[127:64];
       ALU_MULHSU: result = product_signed_unsigned[127:64];
       ALU_MULHU: result = product_unsigned_unsigned[127:64];
-      ALU_DIV: begin
+      ALU_DIV: if (ITERATIVE_DIVIDE) begin
+        result = '0;
+      end else begin
         if (rhs == '0) begin
           result = '1;
         end else if ((lhs == SIGNED_MIN) && (rhs == '1)) begin
@@ -52,8 +56,10 @@ module rv64_alu (
           result = $signed(lhs) / $signed(rhs);
         end
       end
-      ALU_DIVU: result = (rhs == '0) ? '1 : lhs / rhs;
-      ALU_REM: begin
+      ALU_DIVU: result = ITERATIVE_DIVIDE ? '0 : ((rhs == '0) ? '1 : lhs / rhs);
+      ALU_REM: if (ITERATIVE_DIVIDE) begin
+        result = '0;
+      end else begin
         if (rhs == '0) begin
           result = lhs;
         end else if ((lhs == SIGNED_MIN) && (rhs == '1)) begin
@@ -62,10 +68,12 @@ module rv64_alu (
           result = $signed(lhs) % $signed(rhs);
         end
       end
-      ALU_REMU: result = (rhs == '0) ? lhs : lhs % rhs;
+      ALU_REMU: result = ITERATIVE_DIVIDE ? '0 : ((rhs == '0) ? lhs : lhs % rhs);
 
       ALU_MULW: word_result = lhs[31:0] * rhs[31:0];
-      ALU_DIVW: begin
+      ALU_DIVW: if (ITERATIVE_DIVIDE) begin
+        word_result = '0;
+      end else begin
         if (rhs[31:0] == '0) begin
           word_result = '1;
         end else if ((lhs[31:0] == SIGNED_MIN_W) && (rhs[31:0] == '1)) begin
@@ -74,8 +82,11 @@ module rv64_alu (
           word_result = $signed(lhs[31:0]) / $signed(rhs[31:0]);
         end
       end
-      ALU_DIVUW: word_result = (rhs[31:0] == '0) ? '1 : lhs[31:0] / rhs[31:0];
-      ALU_REMW: begin
+      ALU_DIVUW: word_result = ITERATIVE_DIVIDE ? '0 :
+                               ((rhs[31:0] == '0) ? '1 : lhs[31:0] / rhs[31:0]);
+      ALU_REMW: if (ITERATIVE_DIVIDE) begin
+        word_result = '0;
+      end else begin
         if (rhs[31:0] == '0) begin
           word_result = lhs[31:0];
         end else if ((lhs[31:0] == SIGNED_MIN_W) && (rhs[31:0] == '1)) begin
@@ -84,7 +95,8 @@ module rv64_alu (
           word_result = $signed(lhs[31:0]) % $signed(rhs[31:0]);
         end
       end
-      ALU_REMUW: word_result = (rhs[31:0] == '0) ? lhs[31:0] : lhs[31:0] % rhs[31:0];
+      ALU_REMUW: word_result = ITERATIVE_DIVIDE ? '0 :
+                               ((rhs[31:0] == '0) ? lhs[31:0] : lhs[31:0] % rhs[31:0]);
 
       default: result = '0;
     endcase

@@ -3,6 +3,7 @@ module rv64_cache #(
 ) (
   input  logic        clk,
   input  logic        reset,
+  input  logic        invalidate,
   input  logic        request_valid,
   output logic        request_ready,
   input  logic        request_write,
@@ -11,6 +12,7 @@ module rv64_cache #(
   input  logic [7:0]  request_write_strobe,
   output logic        response_valid,
   output logic [63:0] response_read_data,
+  input  logic        response_ready,
   output logic        memory_valid,
   input  logic        memory_ready,
   output logic        memory_write,
@@ -47,13 +49,13 @@ module rv64_cache #(
     response_valid = state == RESPONSE;
     memory_valid = state == READ_MISS || state == WRITE_THROUGH;
     memory_write = state == WRITE_THROUGH;
-    memory_address = pending_address;
+    memory_address = {pending_address[63:3], 3'b000};
     memory_write_data = pending_write_data;
     memory_write_strobe = pending_write_strobe;
   end
 
   always_ff @(posedge clk) begin
-    if (reset) begin
+    if (reset || invalidate) begin
       state <= IDLE;
       line_valid <= '0;
       response_read_data <= '0;
@@ -110,7 +112,11 @@ module rv64_cache #(
             state <= RESPONSE;
           end
         end
-        RESPONSE: state <= IDLE;
+        RESPONSE: begin
+          if (response_ready) begin
+            state <= IDLE;
+          end
+        end
         default: state <= IDLE;
       endcase
     end

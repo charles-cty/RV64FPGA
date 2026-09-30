@@ -33,8 +33,22 @@ differential 判定。
 
 `scripts/run-core-diff.sh` 已将核心 smoke program 接入完整流程：xsim testbench 导出
 `build/xsim/core/rtl_trace.jsonl`，独立 ISS 生成 `iss_trace.jsonl`，再由比较器逐条检查
-`pc`、指令、下一 PC、目的寄存器和写回值。该 trace 目前不包含 CSR/trap 字段；这些
-字段会在 CSR 实现进入核心后加入格式并保持向后不兼容地升级。
+`pc`、指令、下一 PC、目的寄存器和写回值。该 trace 目前仍不包含 CSR/trap 字段；
+CSR 已进入核心，但带 CSR/trap 的提交格式和独立 ISS 对照仍列为后续工作。
+
+`run-core-random-diff.sh` 使用固定 seed `0x52563634` 生成 96 条结构化随机 RV64IMA
+整数、乘除、余数和访存指令，xsim 从生成的 hex 装载同一程序，独立 ISS 生成期望 trace
+后逐条比较。该回归覆盖随机寄存器依赖、移位边界、M 扩展边界和 64 位对齐访存；
+cache 交互已由 SoC 随机回归覆盖；`mmu_random` 已覆盖 MMU 单元的 Sv39 TLB
+交互并输出命中、walk、`SFENCE.VMA`、`satp`、超页和 fault 摘要。
+
+`run-soc-random-diff.sh` 将同一程序装载到 BRAM SoC，覆盖随机读写和原子事务，再比较
+完整提交 trace；它覆盖延迟 miss、hit、write-through，并验证 BRAM 原子访问直通路径。
+DDR3 模型路径的原子 read-modify-write 由 `soc_ddr3_atomic` 验证；最终 SoC MIG
+top-level 仍需接入同等事务端点并进行硬件验证。
+
+`ddr3_mig_atomic_path` 回归现已验证该 MIG CDC/AXI 包装器的 LR/SC/AMO 串行读-改-写，
+包括 reservation 成功/失败和失败 SC 的无事务行为。
 
 `scripts/run-soc-cache-diff.sh` 在 cacheable BRAM SoC 中运行包含 write miss、read miss、
 read hit、分支和可见内存写入的程序，再将 RTL 提交 trace 与独立 ISS 比较。
@@ -60,6 +74,12 @@ RTL trace 比较 M-mode 配置、进入 S-mode 后的 Sv39 取指及虚拟数据
 supervisor-only 数据页比较 load page fault，再将同一数据页设为 user 并比较成功 load。
 该场景同时证明 U-mode 取指需要 U 权限，并比较 S-mode 对同一 U 页取指的 instruction page
 fault；该拒绝路径不受 SUM 影响。
+
+`scripts/run-soc-mmu-tlb-diff.sh` 在完整 SoC 运行独立 ISS 对照的 S-mode 程序：初始
+load 填充 data TLB，程序通过已映射页表页重写目标 PTE，再执行按虚拟地址的
+`SFENCE.VMA` 并验证 load 改为新物理页值；最后切换 `satp` 到第二套页表并验证指令、数据
+翻译均切换到第三个值。三次不同的 load 值使遗漏 write-through、地址失效或 `satp`
+失效的实现错误可分别观测。
 
 运行入口：
 

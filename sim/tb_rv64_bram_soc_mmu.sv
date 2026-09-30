@@ -8,7 +8,12 @@ module tb_rv64_bram_soc_mmu;
   integer failures;
   integer index;
 
-  rv64_bram_soc #(.UART_BIT_CYCLES(2)) dut (.*);
+  rv64_bram_soc #(.UART_BIT_CYCLES(2)) dut (
+    .clk(clk), .reset(reset), .led(led), .uart_tx(uart_tx), .uart_rx(1'b1),
+    .external_ddr3_request_ready(1'b0),
+    .external_ddr3_response_read_data(64'b0),
+    .external_ddr3_response_error(1'b0)
+  );
   always #5 clk = ~clk;
 
   function automatic logic [31:0] encode_i(
@@ -78,7 +83,7 @@ module tb_rv64_bram_soc_mmu;
     dut.data_memory[512] = make_pte(44'd2, 8'h01);
     dut.data_memory[1024] = make_pte(44'd3, 8'h01);
     dut.data_memory[1536] = make_pte(44'd0, 8'h49);
-    dut.data_memory[1538] = make_pte(44'd4, 8'hc7);
+    dut.data_memory[1538] = make_pte(44'd4, 8'h47);
 
     @(posedge clk);
     #1;
@@ -104,6 +109,10 @@ module tb_rv64_bram_soc_mmu;
     end
     if (dut.data_memory[2048] !== 64'd2) begin
       $display("FAIL translated store physical location: got=%h expected=2", dut.data_memory[2048]);
+      failures = failures + 1;
+    end
+    if (!dut.data_memory[1538][7]) begin
+      $display("FAIL SoC MMU store did not set PTE.D");
       failures = failures + 1;
     end
     if (dut.core.commit_trap_valid !== 1'b0 || dut.instruction_translation_fault !== 1'b0 ||

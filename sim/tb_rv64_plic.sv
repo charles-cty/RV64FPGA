@@ -29,9 +29,9 @@ module tb_rv64_plic;
     end
   endtask
 
-  task automatic claim(input logic [5:0] expected);
+  task automatic claim(input logic [5:0] expected, input logic supervisor_context);
     begin
-      address = 22'h200004;
+      address = supervisor_context ? 22'h201004 : 22'h200004;
       request = 1'b1;
       write = 1'b0;
       #1;
@@ -70,11 +70,11 @@ module tb_rv64_plic;
       failures = failures + 1;
     end
     interrupt_sources = '0;
-    claim(6'd1);
+    claim(6'd1, 1'b0);
     @(posedge clk);
     #1;
-    claim(6'd2);
-    write_register(22'h200000, 64'd3);
+    claim(6'd2, 1'b1);
+    write_register(22'h201000, 64'd3);
     interrupt_sources[1] = 1'b1;
     @(posedge clk);
     #1;
@@ -82,6 +82,23 @@ module tb_rv64_plic;
       $display("FAIL threshold did not mask lower priority interrupt");
       failures = failures + 1;
     end
+
+    write_register(22'h200000, 64'd0);
+    write_register(22'h000004, 64'd1);
+    write_register(22'h000008, 64'd7);
+    write_register(22'h002000, 64'h6);
+    interrupt_sources[1] = 1'b1;
+    interrupt_sources[2] = 1'b1;
+    @(posedge clk);
+    #1;
+    claim(6'd2, 1'b0);
+    write_register(22'h000004, 64'd7);
+    interrupt_sources = '0;
+    interrupt_sources[1] = 1'b1;
+    interrupt_sources[2] = 1'b1;
+    @(posedge clk);
+    #1;
+    claim(6'd1, 1'b0);
 
     if (failures != 0) begin
       $display("SIM FAIL: %0d PLIC checks failed", failures);

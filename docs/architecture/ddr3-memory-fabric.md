@@ -7,9 +7,10 @@ The Linux-capable SoC replaces the simulation-only DRAM portion of
 the CPU must not depend on PCIe clocks or XDMA before the DDR3 calibration
 completes.
 
-This document defines the boundary before generating vendor IP. It does not
-claim that a MIG instance, timing constraints, or board-level DDR3 operation
-exists yet.
+The generated C0 MIG candidate is stored under
+`ip/rv64_mig_ch0/rv64_mig_ch0/rv64_mig_ch0/`; the board-level wrapper is
+`rtl/rv64_mig_soc_top.sv`. These files provide an integration candidate only;
+they do not claim timing closure, calibration, or board-level DDR3 operation.
 
 ## CPU-Side Contract
 
@@ -20,6 +21,7 @@ the MIG wrapper. A selected cache presents:
 | Signal group | Meaning |
 |---|---|
 | `memory_valid` / `memory_ready` | Request handshake; a request remains stable until accepted. |
+| `response_valid` / `response_ready` | Completed response handshake; the cache holds the response until the CPU consumes it. |
 | `memory_write` | `0` reads one 8-byte cache line; `1` writes selected bytes. |
 | `memory_address` | Physical byte address, naturally aligned to the cache-line transaction. |
 | `memory_write_data` / `memory_write_strobe` | Write-through payload and byte enables. |
@@ -57,22 +59,70 @@ DDR3 physical window is `0x0000_0000_8000_0000` through
 `soc_ddr3_model` xsim regression proves a cache write-through followed by a
 delayed read miss and a read hit in that DDR3 window.
 
+For model-backed SoC accesses, DDR3 LR/SC/AMO requests bypass the ordinary
+write-through cache and use a serialized read-modify-write state machine. The
+data cache is invalidated around the operation so a prior cached line cannot
+reintroduce stale data. `soc_ddr3_atomic` verifies 64-bit LR/SC/AMO ordering;
+the same atomic transaction contract must be carried into the eventual MIG
+wrapper before hardware or Linux SMP support is claimed.
+
+Both the SoC boot ROM and the behavioural DDR3 endpoint accept optional
+`BOOT_ROM_INIT_FILE`/`DDR3_MODEL_INIT_FILE` hex-image parameters for xsim image
+loading. Empty parameters retain the existing zero-initialized testbench mode.
+The boot-ROM image is one 32-bit instruction word per line; the DDR3 image is
+one little-endian 64-bit word per line.
+
 The SoC's optional model path supports instruction fetches from the same
 window through an instruction cache endpoint; `rv64_ddr3_arbiter` serializes
 instruction and data cache misses onto one DDR3 model instance. The
 `soc_ddr3_instruction` regression verifies a BRAM-to-DDR3 jump and delayed
 fetch through that shared endpoint.
 
+Page-table traffic uses the same arbiter as cache traffic. With
+`USE_DDR3_MODEL=1`, Sv39 PTE reads and A/D writebacks in the modelled DDR3
+window use a dedicated PTE master; BRAM-resident PTEs retain the zero-wait
+path. The `soc_ddr3_mmu` regression places all Sv39 tables in DDR3 and checks
+delayed supervisor translation, the data write, and A/D updates.
+Only read responses may assert the owning MMU's `pte_ready`: an A/D write
+acknowledgement clears the writeback request without advancing a subsequent
+walk. `soc_pte_write` covers overlapping writeback and new instruction/data
+walks with delayed DDR responses and nonidentity mappings.
+
 The vendor-free arbiter regression (`ddr3_arbiter`) verifies alternating
 instruction/data grants, payload stability, response routing, and read-after-
 write behavior against the delayed DDR3 endpoint. SoC integration uses the
 same arbitration contract for both CPU-side request sources.
+
+`rv64_mig_soc_top` connects the 64-bit CPU-side transaction boundary through
+`rv64_ddr3_mig_path` to the generated 512-bit AXI MIG interface. It holds the
+SoC in reset until `init_calib_complete`; a two-flop synchronizer releases that
+reset in the 50 MHz CPU clock domain. The bridge uses the MIG UI clock reset in
+its UI domain. Its request and response toggles each use two `ASYNC_REG`
+stages, and the CPU/MIG UI clocks are explicitly asynchronous. A top-level XDC
+constrains the known 50 MHz clock, active-low board reset, DDR3 system-clock
+standard, and three LEDs. UART is held at an internal idle level because no
+external UART connector pin has been verified.
+
+The `soc_ddr3_external` xsim regression drives `rv64_bram_soc` with a delayed
+independent endpoint and verifies write-through traffic, delayed read-miss
+refill, and the subsequent cache hit using endpoint-returned data. This is
+transaction-level evidence only; it does not model MIG calibration or DDR3
+electrical behavior.
 
 `rtl/rv64_ddr3_mig_shared_path.sv` now performs that vendor-free composition:
 the two CPU-side masters are arbitrated in `cpu_clk`, crossed once into
 `ui_clk`, and presented to the existing AXI adapter. The
 `ddr3_mig_shared_path` regression covers instruction/data responses,
 calibration rejection, and AXI lane behavior.
+
+`rtl/rv64_ddr3_mig_atomic_path.sv` provides the matching single-request
+atomic endpoint for the eventual MIG integration. It sequences LR and AMO
+through an AXI read followed by an optional write, carries the reservation
+across the CPU/UI CDC path, and returns SC success/failure without issuing a
+transaction for a failed reservation. The `ddr3_mig_atomic_path` regression
+checks LR/SC ordering, AMOADD read-modify-write data, failed SC suppression,
+and AXI response propagation. This endpoint remains a separate integration
+seam until the final SoC MIG top-level is instantiated.
 
 `soc_ddr3_fault` drives the model with calibration unavailable and proves that
 the core receives a precise load access fault (`mcause=13`, `mepc=0x14`,

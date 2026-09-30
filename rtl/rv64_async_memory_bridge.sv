@@ -26,12 +26,12 @@ module rv64_async_memory_bridge (
   cpu_state_t cpu_state;
   ui_state_t ui_state;
   logic cpu_request_toggle;
-  logic ui_request_toggle_sync1;
-  logic ui_request_toggle_sync2;
+  (* ASYNC_REG = "TRUE" *) logic ui_request_toggle_sync1;
+  (* ASYNC_REG = "TRUE" *) logic ui_request_toggle_sync2;
   logic ui_request_toggle_seen;
   logic ui_response_toggle;
-  logic cpu_response_toggle_sync1;
-  logic cpu_response_toggle_sync2;
+  (* ASYNC_REG = "TRUE" *) logic cpu_response_toggle_sync1;
+  (* ASYNC_REG = "TRUE" *) logic cpu_response_toggle_sync2;
   logic cpu_response_toggle_seen;
 
   logic cpu_request_write_latched;

@@ -19,17 +19,28 @@ module rv64_csr (
   output logic        machine_interrupt_enable,
   output logic [63:0] machine_interrupt_enable_bits,
   output logic [63:0] machine_interrupt_pending_bits,
+  output logic [63:0] interrupt_delegation_bits,
+  output logic        supervisor_interrupt_enable,
+  output logic [63:0] supervisor_interrupt_enable_bits,
+  output logic [63:0] supervisor_interrupt_pending_bits,
   output logic [63:0] machine_trap_vector,
   output logic [63:0] machine_exception_pc,
   output logic [1:0]  privilege_mode,
+  output logic [1:0]  data_privilege,
   output logic [63:0] satp_value,
   output logic        sum_enable,
+  output logic        mxr_enable,
   output logic [63:0] trap_vector,
   output logic [63:0] trap_exception_pc,
   output logic        trap_delegated
 );
-  localparam logic [63:0] MISA_VALUE = 64'h8000_0000_0000_1101;
+  localparam logic [63:0] MISA_VALUE = 64'h8000_0000_0014_1101;
   localparam logic [63:0] SSTATUS_MASK = 64'h8000_0003_000d_e162;
+  // MSIP/MTIP/MEIP are driven by CLINT/PLIC and are read-only in mip; only
+  // the supervisor pending bits are software writable.  Through sip, only
+  // SSIP may be written, and only when it is delegated.
+  localparam logic [63:0] MIP_WRITE_MASK = 64'h0000_0000_0000_0222;
+  localparam logic [63:0] SIP_WRITE_MASK = 64'h0000_0000_0000_0002;
 
   logic [63:0] mstatus;
   logic [63:0] medeleg;
@@ -41,7 +52,6 @@ module rv64_csr (
   logic [63:0] mcause;
   logic [63:0] mtval;
   logic [63:0] mip;
-  logic [63:0] sie;
   logic [63:0] stvec;
   logic [63:0] sscratch;
   logic [63:0] sepc;
@@ -51,6 +61,11 @@ module rv64_csr (
   logic [63:0] time_counter;
   logic [1:0] privilege_mode_register;
 
+  localparam logic [63:0] MVENDORID_VALUE = 64'd0;
+  localparam logic [63:0] MARCHID_VALUE = 64'h0000_0000_5256_3634;
+  localparam logic [63:0] MIMPID_VALUE = 64'h0000_0000_0000_0001;
+  localparam logic [63:0] MHARTID_VALUE = 64'd0;
+
   always_comb begin
     machine_interrupt_enable = mstatus[3];
     machine_interrupt_enable_bits = mie;
@@ -58,11 +73,21 @@ module rv64_csr (
     machine_interrupt_pending_bits[3] = mip[3] | software_interrupt;
     machine_interrupt_pending_bits[7] = mip[7] | timer_interrupt;
     machine_interrupt_pending_bits[11] = mip[11] | external_interrupt;
+    interrupt_delegation_bits = mideleg;
+    supervisor_interrupt_enable = mstatus[1];
+    // sie and sip are restricted views of mie and mip.  Physical CLINT/PLIC
+    // lines only drive the corresponding machine pending bits; OpenSBI turns
+    // an MTIP into a software-pending STIP after handling the machine trap.
+    supervisor_interrupt_enable_bits = mie & mideleg;
+    supervisor_interrupt_pending_bits = machine_interrupt_pending_bits & mideleg;
     machine_trap_vector = mtvec;
     machine_exception_pc = mepc;
     privilege_mode = privilege_mode_register;
+    data_privilege = (privilege_mode_register == 2'b11 && mstatus[17]) ?
+                     mstatus[12:11] : privilege_mode_register;
     satp_value = satp;
     sum_enable = mstatus[18];
+    mxr_enable = mstatus[19];
     trap_delegated = (current_privilege != 2'b11) &&
       (trap_cause[63] ? mideleg[trap_cause[5:0]] : medeleg[trap_cause[5:0]]);
     trap_vector = trap_delegated ? stvec : mtvec;
@@ -72,14 +97,18 @@ module rv64_csr (
   always_comb begin
     read_data = '0;
     unique case (read_address)
+      12'hF11: read_data = MVENDORID_VALUE;
+      12'hF12: read_data = MARCHID_VALUE;
+      12'hF13: read_data = MIMPID_VALUE;
+      12'hF14: read_data = MHARTID_VALUE;
       12'h100: read_data = mstatus & SSTATUS_MASK;
-      12'h104: read_data = sie;
+      12'h104: read_data = supervisor_interrupt_enable_bits;
       12'h105: read_data = stvec;
       12'h140: read_data = sscratch;
       12'h141: read_data = sepc;
       12'h142: read_data = scause;
       12'h143: read_data = stval;
-      12'h144: read_data = mip;
+      12'h144: read_data = supervisor_interrupt_pending_bits;
       12'h180: read_data = satp;
       12'h300: read_data = mstatus;
       12'h301: read_data = MISA_VALUE;
@@ -92,7 +121,9 @@ module rv64_csr (
       12'h342: read_data = mcause;
       12'h343: read_data = mtval;
       12'h344: read_data = machine_interrupt_pending_bits;
+      12'hC00: read_data = time_counter;
       12'hC01: read_data = time_counter;
+      12'hC80: read_data = time_counter[63:32];
       12'hC81: read_data = time_counter[63:32];
       default: read_data = '0;
     endcase
@@ -110,7 +141,6 @@ module rv64_csr (
       mcause <= '0;
       mtval <= '0;
       mip <= '0;
-      sie <= '0;
       stvec <= '0;
       sscratch <= '0;
       sepc <= '0;
@@ -125,14 +155,21 @@ module rv64_csr (
       if (write_enable) begin
         unique case (write_address)
           12'h100: mstatus <= (mstatus & ~SSTATUS_MASK) | (write_data & SSTATUS_MASK);
-          12'h104: sie <= write_data;
+          12'h104: mie <= (mie & ~mideleg) | (write_data & mideleg);
           12'h105: stvec <= write_data;
           12'h140: sscratch <= write_data;
           12'h141: sepc <= write_data;
           12'h142: scause <= write_data;
           12'h143: stval <= write_data;
-          12'h144: mip <= write_data;
-          12'h180: satp <= write_data;
+          12'h144: mip <= (mip & ~(SIP_WRITE_MASK & mideleg)) |
+                           (write_data & SIP_WRITE_MASK & mideleg);
+          12'h180: begin
+            // satp.MODE is WARL. Ignore the entire write when software probes
+            // an unsupported translation mode so Linux falls back to Sv39.
+            if (write_data[63:60] == 4'h0 || write_data[63:60] == 4'h8) begin
+              satp <= write_data;
+            end
+          end
           12'h300: mstatus <= write_data;
           12'h302: medeleg <= write_data;
           12'h303: mideleg <= write_data;
@@ -142,7 +179,7 @@ module rv64_csr (
           12'h341: mepc <= write_data;
           12'h342: mcause <= write_data;
           12'h343: mtval <= write_data;
-          12'h344: mip <= write_data;
+          12'h344: mip <= (mip & ~MIP_WRITE_MASK) | (write_data & MIP_WRITE_MASK);
           default: ;
         endcase
       end
@@ -169,6 +206,9 @@ module rv64_csr (
         mstatus[3] <= mstatus[7];
         mstatus[7] <= 1'b1;
         mstatus[12:11] <= 2'b00;
+        if (mstatus[12:11] != 2'b11) begin
+          mstatus[17] <= 1'b0;
+        end
         privilege_mode_register <= mstatus[12:11];
       end else if (return_from_supervisor) begin
         mstatus[1] <= mstatus[5];

@@ -1,4 +1,19 @@
 package riscv_pkg;
+  // Keep this set aligned with rv64_csr's implemented registers. Returning zero
+  // for a missing CSR is not sufficient: firmware probes optional extensions
+  // (notably Sstc and AIA) by checking for an illegal-instruction exception.
+  function automatic logic csr_implemented(input logic [11:0] address);
+    case (address)
+      12'hF11, 12'hF12, 12'hF13, 12'hF14,
+      12'h100, 12'h104, 12'h105, 12'h140, 12'h141, 12'h142, 12'h143,
+      12'h144, 12'h180,
+      12'h300, 12'h301, 12'h302, 12'h303, 12'h304, 12'h305,
+      12'h340, 12'h341, 12'h342, 12'h343, 12'h344,
+      12'hC00, 12'hC01, 12'hC80, 12'hC81: csr_implemented = 1'b1;
+      default: csr_implemented = 1'b0;
+    endcase
+  endfunction
+
   typedef enum logic [2:0] {
     IMM_I,
     IMM_S,

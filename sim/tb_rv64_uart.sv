@@ -11,6 +11,8 @@ module tb_rv64_uart;
   logic [63:0] read_data;
   logic ready;
   logic tx;
+  logic rx;
+  logic interrupt;
   integer failures;
   integer bit_number;
 
@@ -24,6 +26,7 @@ module tb_rv64_uart;
     write = 1'b0;
     address = '0;
     write_data = '0;
+    rx = 1'b1;
     failures = 0;
     @(posedge clk);
     #1;
@@ -32,10 +35,45 @@ module tb_rv64_uart;
     address = 12'h005;
     request = 1'b1;
     #1;
-    if (!ready || read_data[0] !== 1'b1) begin
+    if (!ready || read_data[0] !== 1'b0 || read_data[5] !== 1'b1 ||
+        read_data[6] !== 1'b1) begin
       $display("FAIL UART reset ready status: ready=%b data=%h", ready, read_data);
       failures = failures + 1;
     end
+    address = 12'h002;
+    #1;
+    if (read_data[0] !== 1'b1) begin
+      $display("FAIL UART idle IIR=%h", read_data);
+      failures = failures + 1;
+    end
+    address = 12'h003;
+    #1;
+    if (read_data[7:0] !== 8'h03) begin
+      $display("FAIL UART reset LCR=%h", read_data[7:0]);
+      failures = failures + 1;
+    end
+    address = 12'h003;
+    write_data = 64'h80;
+    request = 1'b1;
+    write = 1'b1;
+    @(posedge clk);
+    #1;
+    request = 1'b0;
+    write = 1'b0;
+    address = 12'h000;
+    #1;
+    if (read_data[7:0] !== 8'd1) begin
+      $display("FAIL UART DLAB divisor read=%h", read_data[7:0]);
+      failures = failures + 1;
+    end
+    address = 12'h003;
+    write_data = 64'h03;
+    request = 1'b1;
+    write = 1'b1;
+    @(posedge clk);
+    #1;
+    request = 1'b0;
+    write = 1'b0;
     request = 1'b0;
 
     address = 12'h000;
@@ -50,6 +88,15 @@ module tb_rv64_uart;
       $display("FAIL UART start bit: tx=%b", tx);
       failures = failures + 1;
     end
+    address = 12'h005;
+    request = 1'b1;
+    write = 1'b0;
+    #1;
+    if (read_data[0] !== 1'b0 || read_data[5] !== 1'b0 || read_data[6] !== 1'b0) begin
+      $display("FAIL UART busy status: data=%h", read_data);
+      failures = failures + 1;
+    end
+    request = 1'b0;
 
     for (bit_number = 0; bit_number < 10; bit_number = bit_number + 1) begin
       repeat (BIT_CYCLES) @(posedge clk);
@@ -94,6 +141,14 @@ module tb_rv64_uart;
 
     if (tx !== 1'b1 || dut.busy !== 1'b0) begin
       $display("FAIL UART idle after frame: tx=%b busy=%b", tx, dut.busy);
+      failures = failures + 1;
+    end
+    address = 12'h005;
+    request = 1'b1;
+    write = 1'b0;
+    #1;
+    if (read_data[0] !== 1'b0 || read_data[5] !== 1'b1 || read_data[6] !== 1'b1) begin
+      $display("FAIL UART idle status: data=%h", read_data);
       failures = failures + 1;
     end
     if (failures != 0) begin

@@ -26,34 +26,66 @@
 uv run python -m unittest discover -s tests
 ./scripts/run-xsim.sh alu
 ./scripts/run-core-diff.sh
+./scripts/run-core-random-diff.sh
+./scripts/run-soc-random-diff.sh
+./scripts/run-xsim.sh mmu_random
+./scripts/run-xsim.sh uart_rx
+./scripts/run-xsim.sh soc_uart_irq
 ./scripts/run-soc-cache-diff.sh
 ./scripts/run-soc-mmu-diff.sh
 ./scripts/run-soc-mmu-fault-diff.sh
 ./scripts/run-soc-mmu-sum-diff.sh
 ./scripts/run-soc-mmu-user-diff.sh
+./scripts/run-soc-mmu-tlb-diff.sh
 ./scripts/run-soc-ddr3-diff.sh
+./scripts/build-boot-image.sh
+make jtag-smoke-image
+./scripts/run-xsim.sh soc_jtag_smoke
 ./scripts/run-m4-regression.sh
 ./scripts/run-m5-model-regression.sh
+make dts
+make vivado-project-check
 ```
 
 `run-xsim.sh` 只会调用 Vivado xsim：它把所需文件复制到 Windows 本地临时目录后执行
 `xvlog`、`xelab`、`xsim`，并检查日志中的 `SIM PASS`。它不会运行综合、实现、下载或
 flash 编程。
 
-可用的 xsim 回归名为 `alu`、`decoder`、`regfile`、`imm`、`core`、`core_csr`、`core_atomic`、`core_alignment`、`soc`、`soc_uart`、`soc_irq`、`soc_mmu`、`soc_mmu_fault`、`soc_mmu_fault_diff`、`soc_mmu_sum_diff`、`soc_mmu_user_diff`、`soc_cache_diff`、`soc_mmu_diff`、`soc_ddr3_model`、`soc_ddr3_fault`、`soc_ddr3_diff`、`soc_ddr3_instruction`、`ddr3_arbiter`、`ddr3_mig_shared_path`、`csr`、`atomic`、`cache`、`clint`、`plic`、`uart`、`mmu`、`ddr3_model`、`ddr3_axi_adapter`、`async_memory_bridge` 和 `ddr3_mig_path`。`run-core-diff.sh`
+`make vivado-project-check` 只创建临时 Vivado 工程，导入顶层 RTL、XDC 和生成的 MIG
+XCI，并更新编译顺序和顶层端口检查；它明确不调用综合、实现、bitstream、JTAG 或 flash。
+
+可用的 xsim 回归名为 `alu`、`decoder`、`regfile`、`imm`、`core`、`core_random`、`core_csr`、`core_atomic`、`core_alignment`、`core_supervisor_irq`、`core_privilege`、`core_fence`、`soc`、`soc_random`、`soc_uart`、`soc_uart_irq`、`soc_irq`、`soc_sbi`、`soc_mmu`、`soc_mmu_fault`、`soc_mmu_fault_diff`、`soc_mmu_sum_diff`、`soc_mmu_user_diff`、`soc_mmu_tlb_diff`、`soc_cache_diff`、`soc_mmu_diff`、`soc_ddr3_model`、`soc_ddr3_mmu`、`soc_pte_write`、`soc_ddr3_fault`、`soc_ddr3_diff`、`soc_ddr3_instruction`、`soc_ddr3_atomic`、`soc_init_files`、`soc_boot_image`、`soc_jtag_smoke`、`ddr3_arbiter`、`ddr3_mig_shared_path`、`csr`、`atomic`、`cache`、`clint`、`plic`、`uart`、`uart_rx`、`mmu`、`mmu_random`、`ddr3_model`、`ddr3_axi_adapter`、`async_memory_bridge` 和 `ddr3_mig_path`。`run-core-diff.sh`
 会在 `core` xsim 完成后生成独立 ISS 期望 trace，并运行 RTL↔ISS 比较器。
 
-## 当前状态
+`ddr3_mig_atomic_path` 额外验证最终 MIG CDC/AXI 包装器上的 LR/SC/AMO 串行读-改-写。
+`jtag_axi_loader` 验证 JTAG AXI loader 的 DDR3 32-bit lane 映射、MIG-ready 门控、AXI error
+propagation、incrementing bursts and CPU-reset release rule.
+`run-core-random-diff.sh` 使用固定 seed 生成结构化随机 RV64IMA 程序，运行独立 ISS 与 `core_random` xsim，再逐条比较 trace。
+`run-soc-random-diff.sh` 将同一程序接入完整 BRAM SoC，覆盖 cache miss/hit、write-through 和原子访存后的提交 trace。
+执行 `soc_boot_image` 前先运行 `scripts/build-boot-image.sh` 生成 boot ROM hex。
+执行 `make linux-handoff` 可生成 ROM/DDR3 payload 镜像并运行 ROM→DDR3 handoff smoke test。
 
-M0 工程骨架和 M1/M2/M3/M5 基础增量已建立：RTL ALU、译码、寄存器堆、立即数生成器、单周期
-CPU+BRAM 原型、独立 Python ISS、trace 比较器、CSR 单元以及已接入核心的原子访存路径
-均已纳入版本控制，CLINT/PLIC/UART 已独立完成 xsim 回归，UART/LED 和 CLINT/PLIC
-MMIO 已接入 BRAM SoC，timer trap 已通过 xsim。DDR3 行为模型已接入 cache 外部内存端口，
-并覆盖延迟、字节写掩码、读后写、未校准错误和精确 load access fault；MIG IP、CDC/AXI
-适配器、完整板级约束与实际 DDR3 校准仍未实现。三级流水线、完整异常/delegation、
-PLIC 外部源接线与板级工程尚未实现；双 MMU 与直映 write-through 数据 cache
-已接入 BRAM SoC 并通过 xsim 集成回归，cacheable BRAM 数据路径已有 RTL↔ISS
-differential；基础 Sv39/MMU 核心 differential 已覆盖；execute-only 数据页的 S-mode
-fetch/load/store page fault 已有独立 Sv39 walker↔RTL 精确 trap differential，S-mode
-SUM、U-mode 和 S-mode 对 U/S 页的权限边界已由 SoC differential 覆盖。
-任何综合、实现、下载和 flash 编程都必须先满足上板前确认门。
+## 当前状态（2026-09-30）
+
+Linux 6.12 + OpenSBI 1.6 + BusyBox 已在 XC7K480T 实板启动，并通过
+`USERSPACE_CHECK_PASS proc sysfs tmpfs sleep fork exec wait`。干净重启再次进入
+U-mode，后续捕获到正常定时器处理。最新位流仅在 SRAM，尚未写入 Flash。
+UART RX 尚未接通，不能声称已提供可交互终端；长期稳定性尚未验收。
+
+主源码已对齐成功位流输入，文件哈希与产物身份保存在
+[成功基线](verification/linux-userspace-pass-20260930.json)。关键缺陷回归纳入测试入口。
+
+- [正式构建、预检及实板验收](docs/bringup/maintained-workflow.md)
+- [本机依赖清单](docs/project/local-dependencies.md)
+- [历史实板证据](docs/bringup/linux-acceptance.md)
+
+```bash
+make check-linux-baseline
+make test
+# 仅预检本地成功产物，不触碰硬件
+python3 tools/run_linux_acceptance.py
+# 实际重新配置 SRAM、完整验收并留 Linux 运行
+python3 -u tools/run_linux_acceptance.py --run --output build/acceptance-new
+```
+
+环境包版本进一步锁定、从干净环境完整重建暂未处理，不承诺位流二进制级可重复。

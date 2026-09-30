@@ -52,9 +52,12 @@ interrupt 边界。
 `./scripts/run-xsim.sh plic` 验证 PLIC 的优先级仲裁、claim/complete 和 threshold。
 
 `./scripts/run-xsim.sh mmu` 验证独立 Sv39 walker 的三级页表遍历、4 KiB/2 MiB/1 GiB
-映射、R/W/X/U/A/D 权限、S-mode SUM、非规范虚拟地址、无效 PTE、超页对齐、Bare
-直通、小型 TLB 命中和按地址 `SFENCE.VMA`。该回归覆盖 MMU 单元本身；SoC 接入另由
+映射、R/W/X/U/A/D 权限、S-mode SUM/MXR、非规范虚拟地址、无效 PTE、超页对齐、Bare
+直通、小型 TLB 命中、A/D 自动写回和按地址 `SFENCE.VMA`。该回归覆盖 MMU 单元本身；SoC 接入另由
 `soc_mmu` 回归验证，数据 cache 由独立 `cache` 回归验证。
+
+`./scripts/run-xsim.sh mmu_random` 使用固定种子的确定性随机序列验证 MMU 的 TLB 命中/失配、
+地址/全量 `SFENCE.VMA`、`satp` 切换、超页和权限故障，并输出覆盖率摘要。
 
 核心的 `csr` 回归另外验证 M/S/U 委派 trap、`sret` 和动态 trap vector；取指 `ready`
 握手在无 MMU 的核心单元回归中固定为 1；翻译停顿和完成保持由 `soc_mmu` 回归覆盖。
@@ -81,6 +84,10 @@ privilege。
 精确 load fault、将 PTE.U 置位后的成功 load，以及 S-mode 对 U 页取指的 instruction page
 fault。
 
+`./scripts/run-xsim.sh soc_mmu_tlb_diff` 导出 S-mode PTE rewrite、按地址 `SFENCE.VMA`
+和 `satp` 切换后的提交 trace；`./scripts/run-soc-mmu-tlb-diff.sh` 以独立 ISS 比较初始、
+按地址失效后和切换根页表后三个不同物理页的 load 结果。
+
 `./scripts/run-xsim.sh soc_mmu_diff` 导出基础 Sv39 SoC 的 RTL 提交 trace；
 `./scripts/run-soc-mmu-diff.sh` 以独立 PTE walker 和 ISS 生成并比较 15 条提交。
 
@@ -106,6 +113,17 @@ single-request mailbox，不同的时钟频率、反压、error 和共同 reset 
 `./scripts/run-xsim.sh soc_ddr3_instruction` 验证 BRAM 启动代码跳转到 DDR3 后的指令 cache
 miss、延迟取指、后续 hit 和实际指令执行；它不替代共享 MIG 端点的最终实现。
 
+`make jtag-smoke-image` 后，`./scripts/run-xsim.sh soc_jtag_smoke` 使用同一个 ROM 跳转，
+从 DDR3 模型的 `0x8000_0000` 执行 28-byte payload。它要求 UART TX 出现起始位且 LED 为
+`3'b101`，从而覆盖板级 JTAG loader 首次应建立的 CPU/DDR3/UART/LED 最小链路；它不替代
+实际 JTAG、MIG 或 Linux 证据。
+
+`./scripts/run-xsim.sh soc_ddr3_mmu` 将 Sv39 根表、中间表和叶表放入 DDR3 模型窗口，验证
+PTE 延迟读取、共享仲裁、虚拟 store/load 翻译以及 A/D 位写回。
+
+`./scripts/run-xsim.sh soc_sbi` 验证 S-mode ecall 进入 M-mode handler、推进 `mepc` 并由
+`mret` 返回，作为 OpenSBI 接入前的 ABI smoke test。
+
 `./scripts/run-xsim.sh ddr3_arbiter` 验证指令/数据两个 DDR master 的轮询仲裁、响应路由和
 读后写顺序；它是共享 MIG 端点接入 SoC 前的独立 contract 回归。
 
@@ -113,4 +131,4 @@ miss、延迟取指、后续 hit 和实际指令执行；它不替代共享 MIG 
 512-bit AXI adapter 后的完整 vendor-free 路径。
 
 `./scripts/run-xsim.sh uart` 与 `./scripts/run-xsim.sh soc_uart` 分别验证 UART 8N1
-发送器和 SoC `0x1000_0000` MMIO 接线；它们不证明板上存在可用 UART 管脚。
+发送器、忙/空闲期间 16550 `LSR` 状态位和 SoC `0x1000_0000` MMIO 接线；它们不证明板上存在可用 UART 管脚。

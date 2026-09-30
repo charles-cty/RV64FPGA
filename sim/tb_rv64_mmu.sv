@@ -10,11 +10,15 @@ module tb_rv64_mmu;
   mmu_access_t access;
   logic [1:0] privilege;
   logic sum_enable;
+  logic mxr_enable;
   logic [63:0] satp;
   logic pte_request;
   logic [63:0] pte_address;
   logic [63:0] pte_read_data;
   logic pte_ready;
+  logic pte_update_valid;
+  logic [63:0] pte_update_address;
+  logic [63:0] pte_update_data;
   logic sfence_valid;
   logic sfence_all;
   logic [63:0] sfence_virtual_address;
@@ -134,6 +138,12 @@ module tb_rv64_mmu;
     end
   end
 
+  always_ff @(posedge clk) begin
+    if (!reset && pte_update_valid) begin
+      page_table[pte_update_address[18:3]] <= pte_update_data;
+    end
+  end
+
   initial begin
     clk = 1'b0;
     reset = 1'b1;
@@ -142,6 +152,7 @@ module tb_rv64_mmu;
     access = MMU_LOAD;
     privilege = 2'b01;
     sum_enable = 1'b0;
+    mxr_enable = 1'b0;
     satp = '0;
     sfence_valid = 1'b0;
     sfence_all = 1'b0;
@@ -183,6 +194,16 @@ module tb_rv64_mmu;
     translate("4K sfence address", VA_4K, MMU_LOAD, 2'b01, 1'b0,
               64'h8000_0000_0000_0001, 1'b1, '0);
     set_pte(L0_4K, VA_4K, 0, 44'h12345, 8'hc7);
+    sfence(1'b0, VA_4K);
+    set_pte(L0_4K, VA_4K, 0, 44'h12345, 8'h07);
+    translate("load sets accessed", VA_4K, MMU_LOAD, 2'b01, 1'b0,
+              64'h8000_0000_0000_0001, 1'b0, 64'h0000_0000_1234_5678);
+    if (!page_table[pte_slot(L0_4K, VA_4K, 0)[18:3]][6]) begin
+      $display("FAIL load did not set PTE.A");
+      failures = failures + 1;
+    end
+    sfence(1'b0, VA_4K);
+    set_pte(L0_4K, VA_4K, 0, 44'h12345, 8'hc7);
     translate("2M superpage", VA_2M, MMU_LOAD, 2'b01, 1'b0,
               64'h8000_0000_0000_0004, 1'b0, 64'h0000_0000_0045_6789);
     sfence(1'b0, VA_2M);
@@ -202,10 +223,22 @@ module tb_rv64_mmu;
     set_pte(L0_4K, VA_4K, 0, 44'h12345, 8'h49);
     translate("load execute-only fault", VA_4K, MMU_LOAD, 2'b01, 1'b0,
               64'h8000_0000_0000_0001, 1'b1, '0);
-    set_pte(L0_4K, VA_4K, 0, 44'h12345, 8'h47);
-    translate("store dirty fault", VA_4K, MMU_STORE, 2'b01, 1'b0,
+    mxr_enable = 1'b1;
+    translate("load execute-only with MXR", VA_4K, MMU_LOAD, 2'b01, 1'b0,
+              64'h8000_0000_0000_0001, 1'b0, 64'h0000_0000_1234_5678);
+    mxr_enable = 1'b0;
+    translate("cached execute-only MXR off", VA_4K, MMU_LOAD, 2'b01, 1'b0,
               64'h8000_0000_0000_0001, 1'b1, '0);
+    sfence(1'b0, VA_4K);
+    set_pte(L0_4K, VA_4K, 0, 44'h12345, 8'h47);
+    translate("store sets dirty", VA_4K, MMU_STORE, 2'b01, 1'b0,
+              64'h8000_0000_0000_0001, 1'b0, 64'h0000_0000_1234_5678);
+    if (!page_table[pte_slot(L0_4K, VA_4K, 0)[18:3]][7]) begin
+      $display("FAIL store did not set PTE.D");
+      failures = failures + 1;
+    end
     set_pte(L0_4K, VA_4K, 0, 44'h12345, 8'hd7);
+    sfence(1'b0, VA_4K);
     translate("S load U page SUM off", VA_4K, MMU_LOAD, 2'b01, 1'b0,
               64'h8000_0000_0000_0001, 1'b1, '0);
     translate("S load U page SUM on", VA_4K, MMU_LOAD, 2'b01, 1'b1,

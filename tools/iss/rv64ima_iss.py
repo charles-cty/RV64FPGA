@@ -60,6 +60,8 @@ class RV64IMAISS:
         self.memory: dict[int, int] = {}
         self.csrs: dict[int, int] = {}
         self.privilege = 3
+        self.reservation_valid = False
+        self.reservation_address = 0
 
     def _load(self, address: int, width: int, is_unsigned: bool) -> int:
         raw = sum(self.memory.get(address + offset, 0) << (offset * 8) for offset in range(width))
@@ -197,6 +199,28 @@ class RV64IMAISS:
         elif opcode in (0x33, 0x3B):
             rhs = self._read_register(rs2)
             write_value = self._execute_register(rd, funct3, funct7, lhs, rhs, 64 if opcode == 0x33 else 32)
+        elif opcode == 0x2F:
+            if funct3 not in (0x2, 0x3):
+                raise IllegalInstruction(f"unsupported atomic width: {instruction:#010x}")
+            width = 4 if funct3 == 0x2 else 8
+            operation = (instruction >> 27) & 0x1F
+            source = self._read_register(rs2)
+            old_raw = self._load(lhs, width, True)
+            old_value = sign_extend(old_raw, 32) if width == 4 else old_raw
+            if operation == 0x02:
+                self.reservation_valid = True
+                self.reservation_address = lhs
+                write_value = self._write_register(rd, old_value)
+            elif operation == 0x03:
+                success = self.reservation_valid and self.reservation_address == lhs
+                self.reservation_valid = False
+                if success:
+                    self._store(lhs, source, width)
+                write_value = self._write_register(rd, 0 if success else 1)
+            else:
+                new_value = self._execute_atomic(operation, old_raw, source, width)
+                self._store(lhs, new_value, width)
+                write_value = self._write_register(rd, sign_extend(old_raw, 32) if width == 4 else old_raw)
         elif opcode == 0x73:
             if instruction == 0x30200073:
                 mstatus = self._read_csr(0x300)
@@ -207,8 +231,14 @@ class RV64IMAISS:
             elif funct3 == 0x1:
                 write_value = self._write_register(rd, self._read_csr(instruction >> 20))
                 self._write_csr(instruction >> 20, lhs)
+            elif instruction == 0x10500073:
+                write_value = None
             else:
                 raise IllegalInstruction(f"unsupported SYSTEM instruction: {instruction:#010x}")
+        elif opcode == 0x0F:
+            if funct3 not in (0, 1):
+                raise IllegalInstruction(f"unsupported FENCE instruction: {instruction:#010x}")
+            write_value = None
         else:
             raise IllegalInstruction(f"unsupported opcode: {instruction:#010x}")
 
@@ -251,6 +281,33 @@ class RV64IMAISS:
             raise IllegalInstruction("unsupported OP funct3")
         value = operations[funct3]
         return self._write_register(rd, sign_extend(value, 32) if width == 32 else value)
+
+    @staticmethod
+    def _execute_atomic(operation: int, old_value: int, source_value: int, width: int) -> int:
+        mask = (1 << (width * 8)) - 1
+        old_unsigned = old_value & mask
+        source_unsigned = source_value & mask
+        old_signed = signed(old_unsigned, width * 8)
+        source_signed = signed(source_unsigned, width * 8)
+        if operation == 0x01:
+            return source_unsigned
+        if operation == 0x00:
+            return old_unsigned + source_unsigned
+        if operation == 0x04:
+            return old_unsigned ^ source_unsigned
+        if operation == 0x0C:
+            return old_unsigned & source_unsigned
+        if operation == 0x08:
+            return old_unsigned | source_unsigned
+        if operation == 0x10:
+            return old_unsigned if old_signed < source_signed else source_unsigned
+        if operation == 0x14:
+            return old_unsigned if old_signed > source_signed else source_unsigned
+        if operation == 0x18:
+            return old_unsigned if old_unsigned < source_unsigned else source_unsigned
+        if operation == 0x1C:
+            return old_unsigned if old_unsigned > source_unsigned else source_unsigned
+        raise IllegalInstruction(f"unsupported atomic operation: {operation:#x}")
 
     @staticmethod
     def _multiply_divide(funct3: int, lhs_u: int, rhs_u: int, lhs_s: int, rhs_s: int, width: int) -> dict[int, int]:

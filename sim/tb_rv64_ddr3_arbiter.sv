@@ -19,6 +19,14 @@ module tb_rv64_ddr3_arbiter;
   logic d_ready;
   logic [63:0] d_read_data;
   logic d_error;
+  logic pte_valid;
+  logic pte_write;
+  logic [63:0] pte_address;
+  logic [63:0] pte_write_data;
+  logic [7:0] pte_write_strobe;
+  logic pte_ready;
+  logic [63:0] pte_read_data;
+  logic pte_error;
   logic memory_valid;
   logic memory_write;
   logic [63:0] memory_address;
@@ -39,6 +47,10 @@ module tb_rv64_ddr3_arbiter;
     .data_request_address(d_address), .data_request_write_data(d_write_data),
     .data_request_write_strobe(d_write_strobe), .data_request_ready(d_ready),
     .data_response_read_data(d_read_data), .data_response_error(d_error),
+    .pte_request_valid(pte_valid), .pte_request_write(pte_write),
+    .pte_request_address(pte_address), .pte_request_write_data(pte_write_data),
+    .pte_request_write_strobe(pte_write_strobe), .pte_request_ready(pte_ready),
+    .pte_response_read_data(pte_read_data), .pte_response_error(pte_error),
     .memory_request_valid(memory_valid), .memory_request_write(memory_write),
     .memory_request_address(memory_address), .memory_request_write_data(memory_write_data),
     .memory_request_write_strobe(memory_write_strobe), .memory_request_ready(memory_ready),
@@ -80,6 +92,11 @@ module tb_rv64_ddr3_arbiter;
     d_address = '0;
     d_write_data = '0;
     d_write_strobe = '0;
+    pte_valid = 1'b0;
+    pte_write = 1'b0;
+    pte_address = '0;
+    pte_write_data = '0;
+    pte_write_strobe = '0;
     #1;
     @(posedge clk);
     #1;
@@ -131,6 +148,27 @@ module tb_rv64_ddr3_arbiter;
     end
     @(posedge clk);
     i_valid = 1'b0;
+
+    pte_valid = 1'b1;
+    pte_write = 1'b1;
+    pte_address = 64'd16;
+    pte_write_data = 64'hfeed_cafe_1234_5678;
+    pte_write_strobe = 8'hff;
+    while (!pte_ready) @(posedge clk);
+    @(posedge clk);
+    pte_valid = 1'b0;
+    pte_write = 1'b0;
+    pte_write_strobe = '0;
+
+    pte_valid = 1'b1;
+    pte_address = 64'd16;
+    while (!pte_ready) @(posedge clk);
+    if (pte_read_data !== 64'hfeed_cafe_1234_5678 || pte_error) begin
+      $display("FAIL PTE response data=%h error=%b", pte_read_data, pte_error);
+      failures = failures + 1;
+    end
+    @(posedge clk);
+    pte_valid = 1'b0;
 
     for (cycle_count = 0; cycle_count < 4; cycle_count = cycle_count + 1) @(posedge clk);
     if (failures != 0) $fatal(1, "SIM FAIL: %0d DDR3 arbiter checks failed", failures);
