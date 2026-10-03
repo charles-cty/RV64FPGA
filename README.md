@@ -71,7 +71,8 @@ Linux 6.12 + OpenSBI 1.6 + BusyBox 已在 XC7K480T 实板启动，并通过
 `USERSPACE_CHECK_PASS proc sysfs tmpfs sleep fork exec wait`。干净重启再次进入
 U-mode，后续捕获到正常定时器处理。最新位流仅在 SRAM，尚未写入 Flash。
 实体 UART RX 尚未接通；JTAG 字符终端已于 2026-10-03 通过实板交互验收。
-可在 WSL 终端执行命令，shell 功能自检和断开重连均通过；长期稳定性尚未验收。
+可在 Windows 原生 PowerShell 中运行 `.\scripts\jtag-terminal.ps1` 交互操作，
+无需调用 WSL；shell 功能自检、多行输入和断开重连均通过。长期稳定性尚未验收。
 
 [JTAG 字符终端使用说明](docs/bringup/jtag-console.md) 包含连接命令、限制及证据。
 本次还修复了启动流程中 ECC 内存初始化不完整的问题：装载 Linux 前先初始化全部

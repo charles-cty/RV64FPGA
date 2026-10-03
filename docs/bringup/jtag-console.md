@@ -29,7 +29,7 @@ Linux 新分配内存的 ECC 有效。加入全 DDR 初始化后，同一位流�
 总线写错误不能报告成功；主机模拟测试覆盖初始化未完成时停止装载。
 
 ```text
-WSL 终端 → 文件队列 → Windows Vivado 持久 Tcl → JTAG AXI
+Windows PowerShell / WSL 终端 → 文件队列 → Windows Vivado 持久 Tcl → JTAG AXI
                                                   ↓
                                  独立字符寄存器 / RX、TX FIFO
                                                   ↓
@@ -39,6 +39,24 @@ WSL 终端 → 文件队列 → Windows Vivado 持久 Tcl → JTAG AXI
 无新增 FPGA 管脚，无 Linux 驱动或设备树修改。顶层启用 `JTAG_CONSOLE=1`；普通
 UART/SoC 仿真默认仍使用实体串行收发。原串行 TX 继续用于 ILA 观察。
 字符访问不使用 DDR 通路、不写 loader 控制，不复位 CPU。
+
+## Windows 原生 PowerShell 连接（无需 WSL）
+
+在 Windows PowerShell 7.4+ 中执行：
+
+```powershell
+Set-Location C:\My\Projects\RV64FPGA
+.\scripts\jtag-terminal.ps1
+```
+
+默认使用已验收位流对应的 `.ltx`，并自动建立带时间戳的 session 目录。
+需要指定另一份匹配的探针文件时使用 `-Probes 'C:\path\rv64_mig_soc_top.ltx'`。
+连接后按回车，输入 `cat /proc/uptime` 等 Linux 命令。`Ctrl-]` 断开连接并保持
+Linux 运行；`Ctrl-C` 发送给 Linux。该入口只调用 Windows PowerShell 和 Vivado，
+不调用 `wsl.exe`、`wslpath` 或 Python。日志和原始字节保存在输出的 session 目录。
+
+非交互实板检查：`.\scripts\jtag-terminal.ps1 -Smoke`，要求 shell 返回完整随机标记。
+原生键盘输入使用 Windows Console API；需要 Windows Terminal 等真正的交互终端。
 
 ## 寄存器协议 v1
 
@@ -150,3 +168,12 @@ python3 -u tools/run_jtag_console_acceptance.py \
 连接前的启动输出超过 4096 字节 FIFO 时会丢弃并计数；本次接入时记录 6957 字节已丢弃。
 这不代表当前命令丢失。需要完整启动记录时使用保留 printk；常规终端操作不复位 CPU。
 实体 UART RX、作业控制和长期稳定性仍不在本次通过范围，Flash 未写入。
+
+### Windows 原生终端验证
+
+`scripts/jtag-terminal.ps1` 已通过 Windows PowerShell 实板 `-Smoke` 检查。
+Windows ConPTY（psmux 3.3.4）中连续输入 `cat /proc/uptime` 和
+`echo NATIVE_PWSH_INTERACTIVE_PASS`，收到 uptime 与完整标记；`Ctrl-]` 正常退出。
+证据：`build/native-pwsh-smoke-20261003.log`、
+`build/native-pwsh-interactive-20261003/{input.bin,output.bin,pane.txt}`。
+psmux 仅用于本次自动测试，日常使用无需安装。

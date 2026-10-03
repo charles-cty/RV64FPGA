@@ -19,5 +19,7 @@ APT 包版本，也不宣称已完成全新机器验证。
 | 构建缓存 | 默认 `$HOME/.cache/rv64fpga/build/linux`，可传 `RV64FPGA_LINUX_BUILD_ROOT`；输出发布到仓库 `build/linux/` |
 | 已验收产物（重放基线验收时需要） | manifest 内列明本地 bit/ltx/boot ROM/payload/System.map/config/BusyBox 路径及 SHA-256。产物不放入 Git，须另外保留；源码检查不要求它们存在 |
 
+Windows 原生交互入口 `scripts/jtag-terminal.ps1` 仅需要 PowerShell 7.4+、Vivado 和 JTAG 驱动；不需要 WSL 或 Python。上表的 WSL 依赖用于软件构建与原有自动验收。
+
 QEMU 是之前 BusyBox 主机侧诊断用的可选工具，不是当前实板验收入口的依赖。
 实体 UART 输入尚未接通；JTAG 终端通过 Windows Vivado 提供交互。Linux 配置禁用网络，验收不依赖实体串口接收、SSH 或 PCIe 主机。

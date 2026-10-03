@@ -61,7 +61,8 @@
     "sim/tb_rv64_jtag_console.sv": "dab0aeb27f53106017054c44de28e5341b98cda73860f9f6d14c2de606c6ae66",
     "sim/tb_rv64_ddr_scrub.sv": "13038666ebfe0582405998a7f7863b6725f55141fc825cf5fb075f9aa98b88db",
     "tests/test_jtag_console.py": "6a6b372343a3baadbcf71789c8879bfd681e0e70f2bb9994e142c4e9f17b5b33",
-    "tests/test_jtag_loader_script.py": "47cc7190260cf539edb62636411f277cf6aa3c10f45a6fce86506aa4d242a204"
+    "tests/test_jtag_loader_script.py": "47cc7190260cf539edb62636411f277cf6aa3c10f45a6fce86506aa4d242a204",
+    "scripts/jtag-terminal.ps1": "4946036b5ea5dc966449164530d9caab4099edbfe4530786eb58d2972ee85153"
   },
   "artifacts": {
     "bitstream": {
@@ -133,6 +134,18 @@
     "interactive_backend": {
       "path": "build/jtag-console-interactive-20261003b/console.log",
       "sha256": "aa19af520c6822d5a86c6cb083bb33c8e4c1295b471086fb9840d74de8b423a1"
+    },
+    "native_powershell_smoke": {
+      "path": "build/native-pwsh-smoke-20261003.log",
+      "sha256": "f645b641df54e70f9b4e698a355adf233bb87aa915a073d55a7b862aaf521528"
+    },
+    "native_powershell_interactive": {
+      "path": "build/native-pwsh-interactive-20261003/pane.txt",
+      "sha256": "36185ec2dc4d9530660c6f6cc3b9a879e3fa08c724b5b87236e82e6fe4fb0fa2"
+    },
+    "native_powershell_output": {
+      "path": "build/native-pwsh-interactive-20261003/output.bin",
+      "sha256": "041ea60ac5b0b24b3fdb2e80dfeb77e5be914b32b897f6929632194167df1b59"
     }
   },
   "verification": {
@@ -155,7 +168,8 @@
       "U-mode entry",
       "shell proc/sysfs/tmpfs/sleep/four child exec-waits",
       "disconnect/reconnect nonce",
-      "PTY multiline commands and Ctrl-] exit"
+      "PTY multiline commands and Ctrl-] exit",
+      "native Windows PowerShell smoke, ConPTY multiline input and Ctrl-] exit"
     ],
     "terminal_note": "Automated acceptance used the host before stdin isolation; PTY verification used the final host recorded above.",
     "cpu_state": "left running",
