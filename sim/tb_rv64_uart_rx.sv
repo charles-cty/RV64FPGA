@@ -13,6 +13,8 @@ module tb_rv64_uart_rx;
   logic tx;
   logic rx;
   logic interrupt;
+  logic console_rx_valid = 0, console_rx_ready, console_tx_valid, console_tx_ready = 1;
+  logic [7:0] console_rx_data = 0, console_tx_data;
   integer failures;
 
   rv64_uart #(.BIT_CYCLES(BIT_CYCLES)) dut (.*);

@@ -126,3 +126,24 @@ SoC RTL↔ISS differential，也已
   PowerShell 语法检查、实际 Vivado 包装入口参数传递、Tcl 符号解析和地址测试通过；
   历史首次自检及最终运行快照通过正式校验器重放，源码/产物哈希预检通过。
 - 未重新综合或重跑整套实板装载；未进一步锁定工具包版本，未做干净环境重建。
+
+## 2026-10-02：JTAG 字符通道实现
+
+独立字符寄存器、双向 FIFO、UART 连接、主机终端和随机标记 smoke 入口已实现。
+主机侧 mock 测试通过；Windows interop 被当前受限环境阻止，新增 RTL 仿真、综合和
+实板交互尚未验证。旧成功基线不变，未下载新位流。见 `../bringup/jtag-console.md`。
+
+- 2026-10-02 后续：Windows PowerShell 7.6.4 调用恢复。Vivado 2026.1 xsim 的
+  jtag_console、jtag_axi_loader、uart、uart_rx、soc_uart_irq 五项回归全部通过，
+  日志位于 `build/jtag-console-check-20261002/`；尚未综合/下载新的字符通道位流。
+
+
+## 2026-10-03：JTAG 交互验收通过
+
+- 新位流 WNS 0.085 ns、WHS 0.045 ns，JTAG 字符通道已在实板提供 BusyBox shell。
+- 从实板 ILA 和直接读写定位启动故障：未初始化 DDR 的 ECC 导致总线读错误，
+  经 CPU 现有故障接口表现为 cause 13。全 512 MiB 初始化现已纳入正式装载流程。
+- 用户态入口、shell 的 proc/sysfs/tmpfs/sleep/四次子进程自检及断开重连均通过。
+- 初始化程序正常/写错误两条 xsim 路径通过，53 项 Python 测试通过。
+- 新成功清单 `verification/jtag-console-pass-20261003.json` 保留源码和产物身份；
+  旧成功清单不变。证据：`build/jtag-console-scrub-board-20261003/`。

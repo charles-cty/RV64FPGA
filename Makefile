@@ -53,6 +53,10 @@ linux-handoff: boot-image
 boot-image:
 	./scripts/build-boot-image.sh
 
+.PHONY: ddr-scrub-image
+ddr-scrub-image:
+	./scripts/build-ddr-scrub.sh
+
 jtag-smoke-image:
 	./scripts/build-jtag-smoke-image.sh
 

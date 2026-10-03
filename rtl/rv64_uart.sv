@@ -1,4 +1,5 @@
 module rv64_uart #(
+  parameter bit JTAG_CONSOLE = 1'b0,
   parameter integer BIT_CYCLES = 434
 ) (
   input  logic        clk,
@@ -11,6 +12,12 @@ module rv64_uart #(
   output logic        ready,
   output logic        tx,
   input  logic        rx,
+  input logic console_rx_valid,
+  input logic [7:0] console_rx_data,
+  output logic console_rx_ready,
+  output logic console_tx_valid,
+  output logic [7:0] console_tx_data,
+  input logic console_tx_ready,
   output logic        interrupt
 );
   logic [9:0] shift_register;
@@ -35,34 +42,41 @@ module rv64_uart #(
   logic [7:0] interrupt_identification;
   localparam integer RX_START_DELAY = (BIT_CYCLES < 2) ? 1 : (BIT_CYCLES / 2);
 
-  assign ready = !busy || !write;
-  assign interrupt = (interrupt_enable[0] && rx_data_valid) ||
-                     (interrupt_enable[1] && !busy);
+  logic receive_valid, transmit_ready;
+  assign receive_valid = JTAG_CONSOLE ? console_rx_valid : rx_data_valid;
+  assign transmit_ready = !busy && (!JTAG_CONSOLE || console_tx_ready);
+  assign ready = (!busy || !write) &&
+                 !(JTAG_CONSOLE && write && address == 0 && !line_control[7] && !console_tx_ready);
+  assign console_rx_ready = JTAG_CONSOLE && !reset && request && !write && address == 0 && !line_control[7];
+  assign console_tx_valid = JTAG_CONSOLE && !reset && request && write && ready && address == 0 && !line_control[7];
+  assign console_tx_data = write_data[7:0];
+  assign interrupt = (interrupt_enable[0] && receive_valid) ||
+                     (interrupt_enable[1] && transmit_ready);
 
   always_comb begin
     read_data = '0;
     interrupt_identification = 8'h01;
-    if (interrupt_enable[0] && rx_data_valid) begin
+    if (interrupt_enable[0] && receive_valid) begin
       interrupt_identification = 8'h04;
-    end else if (interrupt_enable[1] && !busy) begin
+    end else if (interrupt_enable[1] && transmit_ready) begin
       interrupt_identification = 8'h02;
     end
     unique case (address)
       12'h000: read_data = line_control[7] ? {56'b0, divisor_low} :
-                           {56'b0, rx_data_register};
+                           {56'b0, (JTAG_CONSOLE ? console_rx_data : rx_data_register)};
       12'h001: read_data = line_control[7] ? {56'b0, divisor_high} :
                            {56'b0, interrupt_enable};
       12'h002: read_data = {56'b0, interrupt_identification};
       12'h003: read_data = {56'b0, line_control};
       12'h005: read_data = {56'b0,
                             1'b0,
-                            !busy,
-                            !busy,
+                            transmit_ready,
+                            transmit_ready,
                             1'b0,
                             rx_framing_error,
                             1'b0,
                             rx_overrun,
-                            rx_data_valid};
+                            receive_valid};
       default: read_data = '0;
     endcase
   end
@@ -105,7 +119,7 @@ module rv64_uart #(
         line_control <= write_data[7:0];
       end else if (request && write && (address == 12'h000) && line_control[7]) begin
         divisor_low <= write_data[7:0];
-      end else if (request && write && (address == 12'h000) && !busy) begin
+      end else if (request && write && (address == 12'h000) && transmit_ready) begin
         shift_register <= {1'b1, write_data[7:0], 1'b0};
         bit_index <= '0;
         baud_counter <= '0;

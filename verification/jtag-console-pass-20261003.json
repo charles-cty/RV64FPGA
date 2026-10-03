@@ -1,0 +1,164 @@
+{
+  "schema": 1,
+  "name": "jtag-console-pass-20261003",
+  "source_snapshot": "build/jtag-console-source-20261003",
+  "source_sha256": {
+    "rtl/riscv_pkg.sv": "e22165ed118741b85139889c2993b8433fb021bfa697c06072016bc3e33cf51e",
+    "rtl/rv64_alu.sv": "7e54d7a87f6786634c65bc9db661f69daac0488a9316e5155a0e529bc382de80",
+    "rtl/rv64_async_memory_bridge.sv": "7626d54453a65cde7e50b55e22d25abda88cb714c26b2be0f50769892874d761",
+    "rtl/rv64_atomic_unit.sv": "67ee14d57f553c1c71d30945911210b6026593115fd68023ee27291baa1b9251",
+    "rtl/rv64_bram_soc.sv": "1c03499a10e2ff1281b8cef6842ad18d1ca7c4fd5398b6f49ccbcaa8e10020a1",
+    "rtl/rv64_cache.sv": "ee8d56eaf4ce18d0f88f64e1c41a3c9e4f64e628f16b597ed4925ee54afd4520",
+    "rtl/rv64_clint.sv": "6f2960802bb9507c9d7668ab8b9ffa1e2c94207c18fc3d6f4b079aff76095521",
+    "rtl/rv64_core.sv": "7bc38ac96615585775905bef031385dfe78abfb6eebcab12c66cfce9279f179f",
+    "rtl/rv64_csr.sv": "ab085545f4915611c286c6345a075f462bb725f1d753cf8b8cf4445b8a5a84cb",
+    "rtl/rv64_ddr3_arbiter.sv": "0f76869c7e4912f258fee42925429b8f45f95d5f93f263c8d4ef23395165f1e4",
+    "rtl/rv64_ddr3_axi_adapter.sv": "e17b3ab28a49d24cd3dc4d2d50225043b7298b3f1d959b5b36b86c889c547d3b",
+    "rtl/rv64_ddr3_clock_frequency_probe_top.sv": "263c320f142dc07fdafed3ef3e2583255200924f93ea5e98a4bd310ffa131838",
+    "rtl/rv64_ddr3_clock_probe_top.sv": "9301c1c20cdcd538585a98812ddd6a443fee87f2aa124ea01079e8ff76461463",
+    "rtl/rv64_ddr3_diag_controller.sv": "42cc8ce451c421645efdfcd687f9def61e55078023d5f8dbd2a9de00d34e402f",
+    "rtl/rv64_ddr3_mig_atomic_path.sv": "35ed8e92fe167669d013e3c7798d8b552744393551cf91613719fda311feabb6",
+    "rtl/rv64_ddr3_mig_path.sv": "5290264c71732b5661df74bdd8844ac13b2b9cde9b8d996abea82b3f2f951623",
+    "rtl/rv64_ddr3_mig_shared_path.sv": "f34b10d295374221b4af90c377727085ec3b152588a7df2abe23c6adeef7a6d9",
+    "rtl/rv64_ddr3_model.sv": "84c83c9fc606a50c9b97cda441e70e0bbbcfae74993f5cc3b228a970a35a419c",
+    "rtl/rv64_decoder.sv": "48e834304788183454a3d39f4966c01a1888595b28c06dbc64af8f4d3407f612",
+    "rtl/rv64_divider.sv": "e3299b6d7ef799c705c563a48855c8931bc3e349686283a50e67c42a118000ff",
+    "rtl/rv64_imm_gen.sv": "cd358c64e28d450937b7a2efe0363788bf0df3ce81fcc9ec60f81ac3274f25dc",
+    "rtl/rv64_jtag_axi_loader.sv": "789cf3444c657e2df5df86a0593aa85f45838d25430d7aba9bbe19a335c3bb4e",
+    "rtl/rv64_led_walk_top.sv": "2c16b17fe8e55971f0c60d466c6ea52de0e9f18ea381f891485ce2ebc6358eda",
+    "rtl/rv64_mig_ddr3_diag_top.sv": "fdb630bc987c771d71a5c24c495503052ebbf79f1e84dfeaf29f38f9ac231f1b",
+    "rtl/rv64_mig_soc_top.sv": "606a85e1f7ced2567cb635cd3813d815fef980204eda389064bf143d51f55e49",
+    "rtl/rv64_mmu.sv": "38b9cc7de61390af2ffed80ec4aa4b5143b3ea5b6031a024dc57302afe2c60c4",
+    "rtl/rv64_plic.sv": "8c26d5097179ca46869ac83365119ead168539f080157f0912d6a63026500d07",
+    "rtl/rv64_regfile.sv": "070b05421ba9d28476f04f16ef086a8ccd5c7523c1e3010ae2e418bba5e45816",
+    "rtl/rv64_startup_reset.sv": "dfe3735f508f0b2409c6dbedb73114f54ed28f9d7cde428143ae6f2e73dd30ef",
+    "rtl/rv64_uart.sv": "19d7445d6ea26359741bd510be006ab9b47fb2574ba048b3648bb1f91f297e51",
+    "constraints/rv64_ddr3_clock_frequency_probe.xdc": "b41ec36b7bf28b43c0b67a3bce830a6fd57174477fe1e8574a81712fe3898e98",
+    "constraints/rv64_ddr3_clock_probe.xdc": "b41ec36b7bf28b43c0b67a3bce830a6fd57174477fe1e8574a81712fe3898e98",
+    "constraints/rv64_led_walk_top.xdc": "05e2d4183040da2582b6da8f2cf904d9acca0efcaa9483c2b0b2310454aef6bb",
+    "constraints/rv64_mig_soc_top.xdc": "e0c239c4ab4c2e937e2f30c8bb0d9b3d480f05436dde8cda1dd1292211ca8914",
+    "ip/rv64_mig_ch0/rv64_mig_ch0/rv64_mig_ch0.xci": "cc74ddb4d958b55c19aedf24ff499c3b3b53381935f0482e6a93c30f774b0c0b",
+    "ip/rv64_mig_ch0/rv64_mig_ch0/mig.prj": "506fb4cc81fe639548564fdfabf626e6b81b914147ee8fa11e944c33017a33f6",
+    "ip/rv64_jtag_axi/rv64_jtag_axi/rv64_jtag_axi.xci": "736604408c3487fcddb53109e91a69f529bb1d2ccbd2e4d4b86b595f5db9c1d1",
+    "ip/rv64_debug_ila/rv64_debug_ila/rv64_debug_ila.xci": "f370dfd93cebb51756e16c335d05fe3be49d8437bcc8031740e0fbd608e5380e",
+    "scripts/synth-rv64-mig-project.tcl": "c9181ffdfbcecb21bccbc9c1f249ed12cc1f68a3596fe12702f5f0edfa23321a",
+    "scripts/impl-rv64-mig-checkpoint.tcl": "4a064e03f7e25721fda830e13f3847920b626889420f62f331a91b146ff96fc6",
+    "rtl/rv64_jtag_console.sv": "9d9427e9e8879f5a00d0f8c9eb2af938afede792ac5c04fdc8de28f1031eaaef",
+    "sw/boot/ddr-scrub.S": "a4b9f29834f29456abe6e940b619c9c696541ff8823c416a48f7561b9865d70e",
+    "scripts/build-ddr-scrub.sh": "c629958a6d36b48a736d4a420500b9076efb1abc51935db1b7d7994689a1fee7",
+    "scripts/rv64-ddr-scrub.tcl": "d0575c82a729f57f9ce39fcbf682a7ddf9f54a98dcf0e225eb98e7b3a7e6550d",
+    "scripts/load-rv64-linux-jtag.tcl": "091f6b133d646a060e9f2a88d4e93d400dc9f552f7bc449c824fc09a417c88f1",
+    "scripts/jtag-console.tcl": "0adad65d88bdf0e6b765751d27074412664830fea44ac297339dbf40c01e2dcc",
+    "tools/jtag_terminal.py": "b876c263d3750cb0efba1f8306572e349c1425a11a7bd8633efe24337a050781",
+    "tools/run_jtag_console_acceptance.py": "b3ffeceedfcfa6d15b07e08ca27eeb8c7bb8070e7a2ef8d51b6da38e36f51492",
+    "tools/run_linux_acceptance.py": "6f8f8eb8863482053f20c2fd3b3f71d023db3a5a23bec5c5bc6a31807ed370cb",
+    "tools/check_linux_baseline.py": "6ac33a5ade1e1dfca662108d80d0141c6492455c1de425f5de4452cb0fcfb099",
+    "scripts/invoke-vivado-job.ps1": "86a5e774abe6632080d27c13ddab5e8ffda3468d007a81845cf969191c355c31",
+    "scripts/capture-rv64-linux-entry.tcl": "7c5b5cae8613c546523931026ddcc1b1ae72848386cf5094254ba48ececedc5c",
+    "scripts/program-jtag-bitstream.tcl": "026f825a7bb8af37d91f22cfaabec6f328dee9a8c4bd1afe07f87f9128952531",
+    "scripts/run-xsim.ps1": "fb1078d9f1452a940eff4c069569debd7b685de07b25a7d73ec622a09fa04e75",
+    "scripts/run-m5-model-regression.sh": "4f2e413aa213ab9362db4cf3931b0f314395157efae9902bb79147f01781e94c",
+    "sim/tb_rv64_jtag_console.sv": "dab0aeb27f53106017054c44de28e5341b98cda73860f9f6d14c2de606c6ae66",
+    "sim/tb_rv64_ddr_scrub.sv": "13038666ebfe0582405998a7f7863b6725f55141fc825cf5fb075f9aa98b88db",
+    "tests/test_jtag_console.py": "6a6b372343a3baadbcf71789c8879bfd681e0e70f2bb9994e142c4e9f17b5b33",
+    "tests/test_jtag_loader_script.py": "47cc7190260cf539edb62636411f277cf6aa3c10f45a6fce86506aa4d242a204"
+  },
+  "artifacts": {
+    "bitstream": {
+      "path": "build/jtag-console-hardware-20261002/bitstream/rv64_mig_soc_top.bit",
+      "sha256": "7de263a8d4056f2596e3cafdf2d99878e40226b12be2be92d4a20450a4aed61f"
+    },
+    "probes": {
+      "path": "build/jtag-console-hardware-20261002/bitstream/rv64_mig_soc_top.ltx",
+      "sha256": "5a577abbf97c65bfebe92c37e4a3ef9af07ec4f1fc9aed6f88f75cad4eefbc84"
+    },
+    "boot_rom": {
+      "path": "build/boot/boot_rom.hex",
+      "sha256": "d1a07c40af4bd7ac705816e70531d1ddf4c1296ad0543f90a24838a0e6cb94cb"
+    },
+    "payload": {
+      "path": "build/linux-applets-20260928/rv64fpga-fw_payload.bin",
+      "sha256": "039af4ddea75f59c3b0829482661649a992d2363142c902384af91619bcd0f32"
+    },
+    "symbols": {
+      "path": "build/linux-applets-20260928/System.map",
+      "sha256": "7d13c8b97cdc342742aa14fde1e588de278f2b4b1267dc08a893dcf97d0a18a9"
+    },
+    "linux_config": {
+      "path": "build/linux-applets-20260928/linux.config",
+      "sha256": "12e155aa7edae7d5c370afcc4556e3d65c74caa165651c069faf30e0d7993e22"
+    },
+    "busybox": {
+      "path": "build/linux-applets-20260928/busybox",
+      "sha256": "de06cc97f7fc022e2c4dd331c4f44598f4eced8778dd3d63159585876fdf8796"
+    },
+    "ddr_scrub": {
+      "path": "build/boot/ddr-scrub.bin",
+      "sha256": "4de13fe04c800cfc4094cc502de70cc8355238d76bfc5177cda96b386ebb11be"
+    }
+  },
+  "evidence": {
+    "bitstream_inputs": {
+      "path": "build/jtag-console-hardware-20261002/inputs.json",
+      "sha256": "8bd35be69417dec65291545501c371b945f232775fa0ae4a0bbc277fa225d709"
+    },
+    "acceptance_manifest": {
+      "path": "build/jtag-console-scrub-board-20261003/manifest.json",
+      "sha256": "1319e305c441122fcfca31989b2f53fee2a7154416cbfdadfce7e9626e8f6b50"
+    },
+    "acceptance_result": {
+      "path": "build/jtag-console-scrub-board-20261003/result.json",
+      "sha256": "ba0800e892312abe22349d1d8468fd4ca1aeca5948ccb295eba74fb9ad39d3f0"
+    },
+    "scrub_capture": {
+      "path": "build/jtag-console-scrub-board-20261003/ddr-scrub.csv",
+      "sha256": "fecaa0a08c742a726b1aad46200ccb854a660ef1180c0ace5c13c105f0983cb7"
+    },
+    "selftest": {
+      "path": "build/jtag-console-scrub-board-20261003/selftest.log",
+      "sha256": "ce5e7825c0d97cf3f85976ab56431159a04537414e1ed89625af0a2297875989"
+    },
+    "reconnect": {
+      "path": "build/jtag-console-scrub-board-20261003/reconnect.log",
+      "sha256": "15c4df561039aadcb1e346bbcf523e3c6d66c7a72f1e181b43b2cd281f217e45"
+    },
+    "interactive_input": {
+      "path": "build/jtag-console-interactive-20261003b/input.bin",
+      "sha256": "e3c81766bde51508f15b8f1b64fdcea235ef039de92700791518c58c60cffbfa"
+    },
+    "interactive_output": {
+      "path": "build/jtag-console-interactive-20261003b/output.bin",
+      "sha256": "edc86503c8a1639b19d96395e11b6adaf97ad9a99d484ba1f1956e04a5d1e82e"
+    },
+    "interactive_backend": {
+      "path": "build/jtag-console-interactive-20261003b/console.log",
+      "sha256": "aa19af520c6822d5a86c6cb083bb33c8e4c1295b471086fb9840d74de8b423a1"
+    }
+  },
+  "verification": {
+    "timing_ns": {
+      "WNS": 0.085,
+      "WHS": 0.045
+    },
+    "python_tests": 53,
+    "xsim": [
+      "jtag_console",
+      "jtag_axi_loader",
+      "uart",
+      "uart_rx",
+      "soc_uart_irq",
+      "soc_pte_write",
+      "ddr_scrub"
+    ],
+    "hardware": [
+      "512 MiB ECC initialization",
+      "U-mode entry",
+      "shell proc/sysfs/tmpfs/sleep/four child exec-waits",
+      "disconnect/reconnect nonce",
+      "PTY multiline commands and Ctrl-] exit"
+    ],
+    "terminal_note": "Automated acceptance used the host before stdin isolation; PTY verification used the final host recorded above.",
+    "cpu_state": "left running",
+    "flash_modified": false
+  }
+}

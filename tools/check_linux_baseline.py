@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT = ROOT / 'verification/linux-userspace-pass-20260930.json'
+DEFAULT = ROOT / 'verification/jtag-console-pass-20261003.json'
 
 
 def sha256(path):

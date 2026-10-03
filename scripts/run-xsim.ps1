@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('alu', 'decoder', 'regfile', 'imm', 'divider', 'core', 'core_divzero', 'core_random', 'core_csr', 'core_atomic', 'core_alignment', 'core_supervisor_irq', 'core_privilege', 'core_fence', 'soc', 'soc_random', 'soc_uart', 'soc_uart_irq', 'soc_irq', 'soc_sbi', 'soc_mmu', 'soc_mmu_fault', 'soc_mmu_fault_diff', 'soc_mmu_sum_diff', 'soc_mmu_user_diff', 'soc_mmu_tlb_diff', 'soc_cache_diff', 'soc_mmu_diff', 'soc_ddr3_model', 'soc_ddr3_external', 'soc_ddr3_mmu', 'soc_pte_write', 'soc_ddr3_high_half', 'soc_ddr3_fault', 'soc_ddr3_diff', 'soc_ddr3_instruction', 'soc_ddr3_atomic', 'soc_init_files', 'soc_boot_image', 'soc_linux_handoff', 'soc_jtag_smoke', 'ddr3_arbiter', 'ddr3_mig_shared_path', 'ddr3_mig_atomic_path', 'csr', 'atomic', 'cache', 'clint', 'plic', 'uart', 'uart_rx', 'mmu', 'mmu_random', 'ddr3_model', 'ddr3_axi_adapter', 'async_memory_bridge', 'ddr3_mig_path', 'ddr3_diag_controller', 'jtag_axi_loader', 'startup_reset')]
+    [ValidateSet('alu', 'decoder', 'regfile', 'imm', 'divider', 'core', 'core_divzero', 'core_random', 'core_csr', 'core_atomic', 'core_alignment', 'core_supervisor_irq', 'core_privilege', 'core_fence', 'soc', 'soc_random', 'soc_uart', 'soc_uart_irq', 'soc_irq', 'soc_sbi', 'soc_mmu', 'soc_mmu_fault', 'soc_mmu_fault_diff', 'soc_mmu_sum_diff', 'soc_mmu_user_diff', 'soc_mmu_tlb_diff', 'soc_cache_diff', 'soc_mmu_diff', 'soc_ddr3_model', 'soc_ddr3_external', 'soc_ddr3_mmu', 'soc_pte_write', 'ddr_scrub', 'soc_ddr3_high_half', 'soc_ddr3_fault', 'soc_ddr3_diff', 'soc_ddr3_instruction', 'soc_ddr3_atomic', 'soc_init_files', 'soc_boot_image', 'soc_linux_handoff', 'soc_jtag_smoke', 'ddr3_arbiter', 'ddr3_mig_shared_path', 'ddr3_mig_atomic_path', 'csr', 'atomic', 'cache', 'clint', 'plic', 'uart', 'uart_rx', 'mmu', 'mmu_random', 'ddr3_model', 'ddr3_axi_adapter', 'async_memory_bridge', 'ddr3_mig_path', 'ddr3_diag_controller', 'jtag_axi_loader', 'jtag_console', 'startup_reset')]
     [string]$Test = 'alu',
     [string]$SourceRoot = (Split-Path -Parent $PSScriptRoot),
     [string]$VivadoBat = 'C:\AMDDesignTools\2026.1\Vivado\bin\vivado.bat',
@@ -62,6 +62,9 @@ try {
         }
         Copy-Item -LiteralPath $randomProgram -Destination (Join-Path $workingDirectory 'sim\random_program.hex')
     }
+    if ($Test -eq 'ddr_scrub') {
+        Copy-Item -LiteralPath (Join-Path $SourceRoot 'build\boot\ddr-scrub-test.hex') -Destination $workingDirectory
+    }
     Set-Location -LiteralPath $workingDirectory
 
     $sources = @('rtl\riscv_pkg.sv')
@@ -115,7 +118,7 @@ try {
                 $top = 'tb_rv64_core_fence'
             }
         }
-    } elseif ($Test -eq 'soc' -or $Test -eq 'soc_random' -or $Test -eq 'soc_uart' -or $Test -eq 'soc_uart_irq' -or $Test -eq 'soc_irq' -or $Test -eq 'soc_sbi' -or $Test -eq 'soc_mmu' -or $Test -eq 'soc_mmu_fault' -or $Test -eq 'soc_mmu_fault_diff' -or $Test -eq 'soc_mmu_sum_diff' -or $Test -eq 'soc_mmu_user_diff' -or $Test -eq 'soc_mmu_tlb_diff' -or $Test -eq 'soc_cache_diff' -or $Test -eq 'soc_mmu_diff' -or $Test -eq 'soc_ddr3_model' -or $Test -eq 'soc_ddr3_external' -or $Test -eq 'soc_ddr3_mmu' -or $Test -eq 'soc_pte_write' -or $Test -eq 'soc_ddr3_high_half' -or $Test -eq 'soc_ddr3_fault' -or $Test -eq 'soc_ddr3_diff' -or $Test -eq 'soc_ddr3_instruction' -or $Test -eq 'soc_ddr3_atomic' -or $Test -eq 'soc_init_files' -or $Test -eq 'soc_boot_image' -or $Test -eq 'soc_linux_handoff' -or $Test -eq 'soc_jtag_smoke') {
+    } elseif ($Test -eq 'soc' -or $Test -eq 'soc_random' -or $Test -eq 'soc_uart' -or $Test -eq 'soc_uart_irq' -or $Test -eq 'soc_irq' -or $Test -eq 'soc_sbi' -or $Test -eq 'soc_mmu' -or $Test -eq 'soc_mmu_fault' -or $Test -eq 'soc_mmu_fault_diff' -or $Test -eq 'soc_mmu_sum_diff' -or $Test -eq 'soc_mmu_user_diff' -or $Test -eq 'soc_mmu_tlb_diff' -or $Test -eq 'soc_cache_diff' -or $Test -eq 'soc_mmu_diff' -or $Test -eq 'soc_ddr3_model' -or $Test -eq 'soc_ddr3_external' -or $Test -eq 'soc_ddr3_mmu' -or $Test -eq 'soc_pte_write' -or $Test -eq 'ddr_scrub' -or $Test -eq 'soc_ddr3_high_half' -or $Test -eq 'soc_ddr3_fault' -or $Test -eq 'soc_ddr3_diff' -or $Test -eq 'soc_ddr3_instruction' -or $Test -eq 'soc_ddr3_atomic' -or $Test -eq 'soc_init_files' -or $Test -eq 'soc_boot_image' -or $Test -eq 'soc_linux_handoff' -or $Test -eq 'soc_jtag_smoke') {
         $sources += @(
             'rtl\rv64_alu.sv', 'rtl\rv64_decoder.sv', 'rtl\rv64_imm_gen.sv',
             'rtl\rv64_regfile.sv', 'rtl\rv64_csr.sv', 'rtl\rv64_atomic_unit.sv', 'rtl\rv64_divider.sv',
@@ -164,6 +167,9 @@ try {
         } elseif ($Test -eq 'soc_ddr3_external') {
             $sources += 'sim\tb_rv64_bram_soc_ddr3_external.sv'
             $top = 'tb_rv64_bram_soc_ddr3_external'
+        } elseif ($Test -eq 'ddr_scrub') {
+            $sources += 'sim\tb_rv64_ddr_scrub.sv'
+            $top = 'tb_rv64_ddr_scrub'
         } elseif ($Test -eq 'soc_pte_write') {
             $sources += 'sim\tb_rv64_bram_soc_pte_write.sv'
             $top = 'tb_rv64_bram_soc_pte_write'
@@ -252,6 +258,9 @@ try {
     } elseif ($Test -eq 'ddr3_diag_controller') {
         $sources += @('rtl\rv64_ddr3_diag_controller.sv', 'sim\tb_rv64_ddr3_diag_controller.sv')
         $top = 'tb_rv64_ddr3_diag_controller'
+    } elseif ($Test -eq 'jtag_console') {
+        $sources += @('rtl\rv64_jtag_axi_loader.sv', 'rtl\rv64_jtag_console.sv', 'rtl\rv64_uart.sv', 'sim\tb_rv64_jtag_console.sv')
+        $top = 'tb_rv64_jtag_console'
     } elseif ($Test -eq 'jtag_axi_loader') {
         $sources += @('rtl\rv64_jtag_axi_loader.sv', 'sim\tb_rv64_jtag_axi_loader.sv')
         $top = 'tb_rv64_jtag_axi_loader'

@@ -23,3 +23,8 @@ repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 "${repo_root}/scripts/run-xsim.sh" uart_rx
 "${repo_root}/scripts/run-xsim.sh" soc_uart_irq
 "${repo_root}/scripts/run-xsim.sh" soc_pte_write
+
+"${repo_root}/scripts/run-xsim.sh" jtag_console
+
+"${repo_root}/scripts/build-ddr-scrub.sh"
+"${repo_root}/scripts/run-xsim.sh" ddr_scrub

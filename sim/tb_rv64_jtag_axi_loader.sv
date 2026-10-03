@@ -13,6 +13,9 @@ module tb_rv64_jtag_axi_loader;
   logic [7:0] memory_request_write_strobe;
   logic [63:0] last_address, last_write_data;
   logic [7:0] last_write_strobe;
+  logic console_read, console_write, console_error = 0;
+  logic [4:0] console_address;
+  logic [31:0] console_write_data, console_read_data = 0;
   integer failures;
 
   rv64_jtag_axi_loader dut (.*);

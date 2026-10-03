@@ -46,3 +46,8 @@
 `rtl/rv64_plic.sv` 提供单 hart、31 个外部源的优先级/pending/enable/threshold/claim
 寄存器与仲裁，并同时接受 M-mode context `0x200000` 和 S-mode context `0x201000`；PLIC
 已接入 SoC MMIO，UART RX 已接到 source 1；其余外设源仍保留为零。
+
+## JTAG 字符通道（2026-10-03，实板验收通过）
+
+主机专用寄存器位于 `0x7ffffe00..0x7ffffe17`，不加入 CPU 地址图或 DDR 通路。
+Linux 仍访问原有 UART。协议和终端入口见 [JTAG 字符通道](../bringup/jtag-console.md)。

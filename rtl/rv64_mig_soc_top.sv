@@ -21,6 +21,11 @@ module rv64_mig_soc_top #(
   output logic [0:0]  ddr3_cs_n,
   output logic [0:0]  ddr3_odt
 );
+  logic console_read, console_write, console_error;
+  logic [4:0] console_address;
+  logic [31:0] console_write_data, console_read_data;
+  logic console_rx_valid, console_rx_ready, console_tx_valid, console_tx_ready;
+  logic [7:0] console_rx_data, console_tx_data;
   logic ui_clk;
   logic ui_clk_sync_rst;
   (* MARK_DEBUG = "TRUE", KEEP = "TRUE" *) logic init_calib_complete;
@@ -199,6 +204,7 @@ module rv64_mig_soc_top #(
 
   rv64_bram_soc #(
     .USE_DDR3_EXTERNAL(1'b1),
+    .JTAG_CONSOLE(1'b1),
     .BOOT_ROM_INIT_FILE(BOOT_ROM_INIT_FILE)
   ) soc (
     .clk(clk_50),
@@ -206,6 +212,9 @@ module rv64_mig_soc_top #(
     .led(led),
     .uart_tx(uart_tx),
     .uart_rx(1'b1),
+    .console_rx_valid(console_rx_valid), .console_rx_ready(console_rx_ready),
+    .console_rx_data(console_rx_data), .console_tx_valid(console_tx_valid),
+    .console_tx_ready(console_tx_ready), .console_tx_data(console_tx_data),
     .debug_commit_valid(debug_commit_valid),
     .debug_commit_pc(debug_commit_pc),
     .debug_commit_instruction(debug_commit_instruction),
@@ -269,7 +278,9 @@ module rv64_mig_soc_top #(
     .m_axi_rready(jtag_axi_rready)
   );
 
-  rv64_jtag_axi_loader jtag_loader (
+  rv64_jtag_axi_loader #(.CONSOLE_ENABLE(1'b1)) jtag_loader (
+    .console_read(console_read), .console_write(console_write), .console_address(console_address),
+    .console_write_data(console_write_data), .console_read_data(console_read_data), .console_error(console_error),
     .clk(clk_50), .reset(jtag_loader_reset), .axi_awvalid(jtag_axi_awvalid), .axi_awready(jtag_axi_awready),
     .axi_awaddr(jtag_axi_awaddr), .axi_awlen(jtag_axi_awlen), .axi_awsize(jtag_axi_awsize),
     .axi_awburst(jtag_axi_awburst), .axi_wvalid(jtag_axi_wvalid), .axi_wready(jtag_axi_wready),
@@ -284,6 +295,14 @@ module rv64_mig_soc_top #(
     .memory_request_address(jtag_memory_request_address), .memory_request_write_data(jtag_memory_request_write_data),
     .memory_request_write_strobe(jtag_memory_request_write_strobe), .memory_request_ready(jtag_memory_request_ready),
     .memory_response_read_data(jtag_memory_response_read_data), .memory_response_error(jtag_memory_response_error)
+  );
+
+  rv64_jtag_console console (
+    .clk(clk_50), .reset(jtag_loader_reset || cpu_reset),
+    .host_read(console_read), .host_write(console_write), .host_address(console_address),
+    .host_write_data(console_write_data), .host_read_data(console_read_data), .host_error(console_error),
+    .rx_valid(console_rx_valid), .rx_data(console_rx_data), .rx_ready(console_rx_ready),
+    .tx_valid(console_tx_valid), .tx_data(console_tx_data), .tx_ready(console_tx_ready)
   );
 
   rv64_debug_ila debug_ila (

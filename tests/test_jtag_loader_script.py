@@ -22,6 +22,7 @@ class JtagLoaderScriptTest(unittest.TestCase):
             array set read_result {}
             set workspace_reads 0
             set cpu_hold 1
+            set scrub_completed 0
             set loader_released 0
             set last_bresp OKAY
             set last_rresp OKAY
@@ -55,11 +56,10 @@ class JtagLoaderScriptTest(unittest.TestCase):
             proc get_hw_axis {args} { return {hw_axi_0} }
             proc get_hw_ilas {args} { return {hw_ila_0} }
             proc get_hw_probes {args} {
-              set filter_index [lsearch -exact $args -filter]
-              if {$filter_index < 0 || [lindex $args [expr {$filter_index + 1}]] ne {NAME == "cpu_reset"}} {
-                error "unexpected CPU reset ILA probe filter: $args"
-              }
-              return {cpu_reset}
+              set i [lsearch -exact $args -filter]
+              if {$i < 0} {return {cpu_reset debug_commit_trace debug_status}}
+              regexp {NAME == "([^"]+)"} [lindex $args [expr {$i+1}]] -> name
+              return [list $name]
             }
             proc after {milliseconds} {}
             proc wait_on_hw_ila {args} {}
@@ -81,7 +81,7 @@ class JtagLoaderScriptTest(unittest.TestCase):
             }
 
             proc run_hw_axi {args} {
-              global transactions memory read_result cpu_hold loader_released last_bresp last_rresp maximum_queue_depth workspace_reads
+              global transactions memory read_result cpu_hold loader_released last_bresp last_rresp maximum_queue_depth workspace_reads scrub_completed
               if {[lindex $args 0] eq "-queue"} {
                 set args [lrange $args 1 end]
               }
@@ -103,11 +103,15 @@ class JtagLoaderScriptTest(unittest.TestCase):
                     set current_address [expr {$address + 4 * $word_index}]
                     if {$current_address == 0x7fffff00} {
                       if {$word eq "00000000"} {
-                        if {$workspace_reads != 16384} {
+                        if {$scrub_completed && $workspace_reads != 16384} {
                           error "DTB workspace was not fully verified before release"
                         }
                         set cpu_hold 0
                         set loader_released 1
+                        set scrub_completed 1
+                      } else {
+                        set cpu_hold 1
+                        set loader_released 0
                       }
                     } else {
                       set memory($current_address) $word
@@ -158,6 +162,9 @@ class JtagLoaderScriptTest(unittest.TestCase):
 
             proc get_property {property object} {
               global last_bresp last_rresp
+              if {$property eq "WIDTH"} {
+                return [dict get {cpu_reset 1 debug_commit_trace 226 debug_status 6} $object]
+              }
               if {$property eq "STATUS.BRESP"} {
                 return $last_bresp
               }
@@ -189,7 +196,8 @@ class JtagLoaderScriptTest(unittest.TestCase):
               if {!$probes_configured || !$ila_armed || $cpu_hold} {
                 error "ILA capture was not armed before CPU release"
               }
-              if {$empty_capture} {
+              if {($empty_capture && $::workspace_reads > 0) ||
+                  ([info exists ::env(MOCK_EMPTY_SCRUB_CAPTURE)] && $::workspace_reads == 0)} {
                 return {}
               }
               set capture_uploaded 1
@@ -202,6 +210,9 @@ class JtagLoaderScriptTest(unittest.TestCase):
                 error "ILA data was not uploaded"
               }
               set csv_path [lindex $args end-1]
+              if {[file tail $csv_path] eq "ddr-scrub-last.csv"} {
+                set csv_path [file join [file dirname $::payload_file] ddr-scrub-last.csv]
+              }
               set handle [open $csv_path wb]
               puts $handle "Sample in Buffer,cpu_reset"
               puts $handle "Radix - UNSIGNED,HEX"
@@ -212,8 +223,12 @@ class JtagLoaderScriptTest(unittest.TestCase):
             set loader_script [lindex $argv 0]
             set payload_file [lindex $argv 1]
             set debug_probes_file [lindex $argv 2]
-            set argc 3
-            set argv [list $payload_file $debug_probes_file 3]
+            set scrub_image [file join [file dirname $payload_file] scrub.bin]
+            set f [open $scrub_image wb]
+            puts -nonewline $f [string repeat "\x00" 136]
+            close $f
+            set argc 5
+            set argv [list $payload_file $debug_probes_file 3 startup $scrub_image]
             source $loader_script
             if {!$probes_configured || $cpu_hold != 0 || !$loader_released || !$capture_uploaded ||
                 $maximum_queue_depth != 1} {
@@ -246,6 +261,9 @@ class JtagLoaderScriptTest(unittest.TestCase):
             )
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("JTAG_DDR_SCRUB_PASS", result.stdout)
+            self.assertLess(result.stdout.index("JTAG_DDR_SCRUB_PASS"),
+                            result.stdout.index("JTAG_PAYLOAD_WRITE_PROGRESS"))
             self.assertIn("JTAG_DDR3_DIAGNOSTIC_PASS", result.stdout)
             self.assertIn("JTAG_DTB_WORKSPACE_INIT_PASS", result.stdout)
             self.assertIn("JTAG_PAYLOAD_WRITE_RATE", result.stdout)
@@ -253,6 +271,15 @@ class JtagLoaderScriptTest(unittest.TestCase):
             self.assertIn("JTAG_LINUX_LOAD_PASS", result.stdout)
             self.assertIn("MOCK_JTAG_LOADER_PASS", result.stdout)
             self.assertTrue((temporary_path / "rv64-linux-cpu-startup.csv").is_file())
+
+            scrub_env = os.environ.copy()
+            scrub_env["MOCK_EMPTY_SCRUB_CAPTURE"] = "1"
+            failed_scrub = subprocess.run(
+                [tclsh, str(mock_file), str(loader_script), str(payload_file), str(debug_probes_file)],
+                capture_output=True, text=True, env=scrub_env)
+            self.assertNotEqual(failed_scrub.returncode, 0)
+            self.assertIn("DDR scrub completion was not captured", failed_scrub.stderr)
+            self.assertNotIn("JTAG_PAYLOAD_WRITE_PROGRESS", failed_scrub.stdout)
 
             corrupt_environment = os.environ.copy()
             corrupt_environment["MOCK_WORKSPACE_CORRUPTION"] = "1"

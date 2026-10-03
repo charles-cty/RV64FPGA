@@ -67,7 +67,7 @@ def main():
     def boot(prefix, folder):
         folder.mkdir(parents=True, exist_ok=True)
         job(prefix + '-load', 'load-rv64-linux-jtag.tcl',
-            [artifacts['payload'], artifacts['probes'], 32, 'hold'], 'JTAG_LINUX_LOAD_HOLD_PASS')
+            [artifacts['payload'], artifacts['probes'], 32, 'hold', artifacts['ddr_scrub']], 'JTAG_LINUX_LOAD_HOLD_PASS')
         job(prefix + '-entry', 'capture-rv64-linux-entry.tcl',
             [artifacts['probes'], folder / 'user.csv', hex(entry), 'release'], 'RV64_BUSYBOX_ENTRY_CAPTURE_PASS')
         print('Waiting 180 seconds for userspace selftest and continued execution', flush=True)

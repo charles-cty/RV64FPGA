@@ -1131,3 +1131,30 @@ not reset to reread printk: the exact selftest marker comes from the first
 run with the same verified bitstream/payload; the final run supplies clean
 reload, repeated user entry, and continued execution evidence. CPU is left
 running in SRAM, with flash unchanged.
+
+
+### JTAG shell and complete ECC initialization (2026-10-03)
+
+The console-enabled bitstream initially reproduced the old XOR calibration
+fault at `ffffffff804d9404`, VA `ffffffd601a80000`. The retained page table
+contained the valid leaf `0x206800e7`. A fresh ILA capture shows successful
+translation followed by `ddr3_model_error=1` at samples 3071 and 4004, with no
+MMU translation fault. Direct JTAG reads of PA `81a80000` and `81a83000` returned
+SLVERR; initializing each complete 64-byte line made reads succeed. MIG ECC is
+enabled, but the prior loader initialized only payload and FDT workspace.
+Linux XOR calibration reads newly allocated buffers without initializing them.
+
+`sw/boot/ddr-scrub.S` and the formal loader now initialize the full 512 MiB
+before loading Linux. The host writes/verifies the first 64 KiB, then the tiny
+M-mode program writes each remaining 64-bit word. Any trap enters a separate
+failure loop. Only an M-mode nontrapping completion capture and zero readback
+samples permit Linux loading. Both normal and injected-error paths pass xsim.
+No FPGA RTL change was needed for this repair.
+
+With the same candidate bitstream and previously successful Linux payload,
+`build/jtag-console-scrub-board-20261003/result.json` records
+`JTAG_CONSOLE_ACCEPTANCE_PASS`: U-mode entry, live shell proc/sysfs/tmpfs,
+sleep and four child exec/waits, then disconnect/reconnect with a fresh nonce.
+The board is left running; Flash is unchanged. The new tracked manifest is
+`verification/jtag-console-pass-20261003.json`; the September baseline is retained.
+See `jtag-console.md` for terminal commands and the original failed-run evidence.

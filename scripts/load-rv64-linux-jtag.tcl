@@ -1,5 +1,5 @@
-if {$argc < 2 || $argc > 4} {
-  error "usage: load-rv64-linux-jtag.tcl <payload.bin> <debug-probes.ltx> ?sample-count? ?hold|startup|first-trap|first-s-trap|first-s-illegal|kernel-park|panic?"
+if {$argc < 2 || $argc > 5} {
+  error "usage: load-rv64-linux-jtag.tcl <payload.bin> <debug-probes.ltx> ?sample-count? ?hold|startup|first-trap|first-s-trap|first-s-illegal|kernel-park|panic? ?ddr-scrub.bin?"
 }
 
 set payload_file [file normalize [lindex $argv 0]]
@@ -9,7 +9,7 @@ if {$argc >= 3} {
   set sample_count [lindex $argv 2]
 }
 set capture_mode startup
-if {$argc == 4} {
+if {$argc >= 4} {
   set capture_mode [lindex $argv 3]
 }
 if {![file exists $payload_file] || ![file isfile $payload_file]} {
@@ -23,6 +23,12 @@ if {![string is integer -strict $sample_count] || $sample_count < 1} {
 }
 if {$capture_mode ni {hold startup first-trap first-s-trap first-s-illegal kernel-park panic}} {
   error "capture mode must be hold, startup, first-trap, first-s-trap, first-s-illegal, kernel-park, or panic: $capture_mode"
+}
+
+set scrub_image [file normalize [file join [file dirname [info script]] .. build boot ddr-scrub.bin]]
+if {$argc == 5} {set scrub_image [file normalize [lindex $argv 4]]}
+if {![file isfile $scrub_image] || [file size $scrub_image] != 136} {
+  error "missing/invalid DDR scrub image; run scripts/build-ddr-scrub.sh: $scrub_image"
 }
 
 set control_address 0x7fffff00
@@ -172,6 +178,21 @@ try {
     error "expected exactly one ILA core; configure the loader bitstream and matching probes first, found: $ilas"
   }
   set ila [lindex $ilas 0]
+  set scrub_status [read_word $axi $control_address "pre-scrub loader status"]
+  scan $scrub_status %x scrub_status_value
+  if {($scrub_status_value & 3) != 3} {error "DDR scrub requires calibrated DDR and CPU hold"}
+  # ECC check bits are undefined after power-up, including pages Linux may
+  # legally read before writing (e.g. XOR calibration buffers). Initialize the
+  # entire advertised RAM before loading the real software image.
+  source [file join [file dirname [info script]] rv64-ddr-scrub.tcl]
+  rv64_scrub_ddr $axi $ila \
+    $scrub_image \
+    [file join [file dirname [info script]] .. build boot ddr-scrub-last.csv]
+
+  foreach probe [get_hw_probes -of_objects $ila] {
+    set width [get_property WIDTH $probe]
+    set_property TRIGGER_COMPARE_VALUE [format "eq%d'b%s" $width [string repeat X $width]] $probe
+  }
   set reset_probes [get_hw_probes -of_objects $ila -filter {NAME == "cpu_reset"}]
   if {[llength $reset_probes] != 1} {
     error "expected exactly one ILA cpu_reset probe, found: $reset_probes"

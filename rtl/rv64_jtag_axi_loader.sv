@@ -1,4 +1,6 @@
 module rv64_jtag_axi_loader #(
+  parameter bit CONSOLE_ENABLE = 1'b0,
+  parameter logic [31:0] CONSOLE_BASE = 32'h7fff_fe00,
   parameter logic [31:0] CONTROL_ADDRESS = 32'h7fff_ff00,
   parameter logic [31:0] DDR_BASE_ADDRESS = 32'h8000_0000
 ) (
@@ -30,6 +32,12 @@ module rv64_jtag_axi_loader #(
   output logic [1:0]  axi_rresp,
   output logic        axi_rlast,
   output logic        cpu_hold_reset,
+  output logic        console_read,
+  output logic        console_write,
+  output logic [4:0]  console_address,
+  output logic [31:0] console_write_data,
+  input  logic [31:0] console_read_data,
+  input  logic        console_error,
   input  logic        memory_available,
   output logic        memory_request_valid,
   output logic        memory_request_write,
@@ -52,6 +60,7 @@ module rv64_jtag_axi_loader #(
   logic write_latched;
   logic loader_released;
   logic transaction_is_control;
+  logic transaction_is_console;
   logic transaction_error;
   logic [31:0] write_data_latched;
   logic [3:0] write_strobe_latched;
@@ -89,7 +98,21 @@ module rv64_jtag_axi_loader #(
     end
   endfunction
 
+  function automatic logic valid_console_access(
+    input logic [31:0] address, input logic [7:0] length,
+    input logic [2:0] size, input logic [1:0] burst
+  );
+    valid_console_access = CONSOLE_ENABLE && address[31:5] == CONSOLE_BASE[31:5] &&
+                           address[1:0] == 0 && length == 0 && size == 2 && burst == AXI_BURST_INCR;
+  endfunction
+
   always_comb begin
+    console_read = !reset && state == IDLE && axi_arvalid && !axi_awvalid &&
+                   valid_console_access(axi_araddr, axi_arlen, axi_arsize, axi_arburst);
+    console_write = !reset && state == WRITE_DATA && axi_wvalid && transaction_is_console &&
+                    !transaction_error && axi_wlast && axi_wstrb == 4'hf;
+    console_address = console_read ? axi_araddr[4:0] : address_latched[4:0];
+    console_write_data = axi_wdata;
     axi_awready = state == IDLE && !axi_arvalid;
     axi_wready = state == WRITE_DATA;
     axi_arready = state == IDLE && !axi_awvalid;
@@ -99,7 +122,7 @@ module rv64_jtag_axi_loader #(
     axi_rdata = read_data_latched;
     axi_rresp = response_latched;
     axi_rlast = state == READ_RESPONSE && beat_index == burst_length_latched;
-    memory_request_valid = state == MEMORY_WAIT && !transaction_is_control && !transaction_error;
+    memory_request_valid = state == MEMORY_WAIT && !transaction_is_control && !transaction_is_console && !transaction_error;
     memory_request_write = write_latched;
     memory_request_address = {32'b0, address_latched[31:3], 3'b000};
     memory_request_write_data = address_latched[2] ? {write_data_latched, 32'b0} : {32'b0, write_data_latched};
@@ -115,6 +138,7 @@ module rv64_jtag_axi_loader #(
       write_latched <= 1'b0;
       loader_released <= 1'b0;
       transaction_is_control <= 1'b0;
+      transaction_is_console <= 1'b0;
       transaction_error <= 1'b0;
       write_data_latched <= '0;
       write_strobe_latched <= '0;
@@ -131,7 +155,9 @@ module rv64_jtag_axi_loader #(
             beat_index <= '0;
             write_latched <= 1'b1;
             transaction_is_control <= axi_awaddr == CONTROL_ADDRESS;
-            transaction_error <= !(valid_control_access(axi_awaddr, axi_awlen, axi_awsize, axi_awburst) ||
+            transaction_is_console <= valid_console_access(axi_awaddr, axi_awlen, axi_awsize, axi_awburst);
+            transaction_error <= !(valid_console_access(axi_awaddr, axi_awlen, axi_awsize, axi_awburst) ||
+                                   valid_control_access(axi_awaddr, axi_awlen, axi_awsize, axi_awburst) ||
                                    (valid_memory_burst(axi_awaddr, axi_awlen, axi_awsize, axi_awburst) &&
                                     cpu_hold_reset && memory_available));
             state <= WRITE_DATA;
@@ -141,7 +167,13 @@ module rv64_jtag_axi_loader #(
             beat_index <= '0;
             write_latched <= 1'b0;
             transaction_is_control <= axi_araddr == CONTROL_ADDRESS;
-            if (valid_control_access(axi_araddr, axi_arlen, axi_arsize, axi_arburst)) begin
+            transaction_is_console <= valid_console_access(axi_araddr, axi_arlen, axi_arsize, axi_arburst);
+            if (valid_console_access(axi_araddr, axi_arlen, axi_arsize, axi_arburst)) begin
+              read_data_latched <= console_read_data;
+              response_latched <= console_error ? AXI_RESP_SLVERR : AXI_RESP_OKAY;
+              transaction_error <= console_error;
+              state <= READ_RESPONSE;
+            end else if (valid_control_access(axi_araddr, axi_arlen, axi_arsize, axi_arburst)) begin
               read_data_latched <= {29'b0, loader_released, memory_available, cpu_hold_reset};
               transaction_error <= 1'b0;
               state <= READ_RESPONSE;
@@ -162,6 +194,9 @@ module rv64_jtag_axi_loader #(
           write_strobe_latched <= axi_wstrb;
           if (transaction_error) begin
             response_latched <= AXI_RESP_SLVERR;
+            state <= WRITE_RESPONSE;
+          end else if (transaction_is_console) begin
+            response_latched <= (!axi_wlast || axi_wstrb != 4'hf || console_error) ? AXI_RESP_SLVERR : AXI_RESP_OKAY;
             state <= WRITE_RESPONSE;
           end else if (transaction_is_control) begin
             // A control write with bit 0 set is an explicit re-arm.  This is

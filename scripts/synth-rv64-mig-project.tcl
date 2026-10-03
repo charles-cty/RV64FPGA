@@ -39,6 +39,7 @@ set rtl_files [list \
   [file join $source_root rtl rv64_ddr3_axi_adapter.sv] \
   [file join $source_root rtl rv64_ddr3_mig_path.sv] \
   [file join $source_root rtl rv64_startup_reset.sv] \
+  [file join $source_root rtl rv64_jtag_console.sv] \
   [file join $source_root rtl rv64_jtag_axi_loader.sv] \
   [file join $source_root rtl rv64_ddr3_diag_controller.sv] \
   [file join $source_root rtl rv64_uart.sv] \

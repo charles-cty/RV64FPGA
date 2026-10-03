@@ -2,8 +2,9 @@
 
 ## 基线与范围
 
-已验收基线为 `verification/linux-userspace-pass-20260930.json`。
-主 `rtl/`、约束和 IP 配置已与成功构建的冻结输入逐字节对齐，包括 MMU ILA 接线。
+当前已验收基线为 `verification/jtag-console-pass-20261003.json`，包含 JTAG 字符通道、
+匹配 bit/ltx、原成功 Linux 软件和 DDR ECC 初始化程序；实板 shell 自检及重连通过。
+`verification/linux-userspace-pass-20260930.json` 保留为历史基线，当前源码与其不一致。
 文件级 SHA-256 用于防止误把修改后的源码称作该位流的输入。
 不承诺不同工具版本生成相同 bitstream，不宣称完成了干净环境重建。
 
@@ -25,6 +26,7 @@ SC/AMO 页故障必须为 cause 15，LR 为 cause 13。维护相关 RTL 时必�
 ```bash
 make boot-image
 make linux-stack
+make ddr-scrub-image
 pwsh.exe -WorkingDirectory 'C:\Windows\Temp' \
   -File "$(wslpath -w "$PWD/scripts/build-rv64-bitstream.ps1")" \
   -SourceRoot "$(wslpath -w "$PWD")" \
@@ -36,6 +38,19 @@ pwsh.exe -WorkingDirectory 'C:\Windows\Temp' \
 IP 输入纳入 Git，派生产物由 Vivado 生成。外部 MIG 配置必须显式传入且哈希匹配。
 正常 Linux 镜像使用 BusyBox `/init`；`RV64FPGA_MINIMAL_INIT=1` 仅用于诊断。
 
+## JTAG 字符终端验收（推荐）
+
+```bash
+python3 tools/check_linux_baseline.py --artifacts
+python3 tools/run_jtag_console_acceptance.py \
+  --manifest verification/jtag-console-pass-20261003.json --output build/jtag-acceptance-new
+# 加 --run 执行 SRAM 编程、全 DDR 初始化、装载、shell 自检和断开重连。
+```
+
+详见 [JTAG 字符终端](jtag-console.md)。`make ddr-scrub-image` 生成装载前必需的
+初始化程序；全 DDR 写入、完成指令捕获和读回抽查均通过后才开始装载 Linux。
+单独调用 `load-rv64-linux-jtag.tcl` 也执行此步骤；第五参数可显式指定 scrub binary。
+
 ## 已验收镜像的自动实板验收
 
 默认只做预检，不访问硬件；`--run` 才会重新配置 FPGA SRAM、复位 CPU 和装载 DDR。
@@ -46,7 +61,7 @@ python3 tools/run_linux_acceptance.py
 python3 -u tools/run_linux_acceptance.py --run --output build/acceptance-new
 ```
 
-流程：检查源码与全部产物哈希 → 编程 SRAM → 完整装载/回读 → 从 BusyBox ELF
+流程：检查源码与全部产物哈希 → 编程 SRAM → 全 DDR ECC 初始化 → 完整装载/回读 → 从 BusyBox ELF
 取得 U-mode 入口并捕获 → 运行快照 → 保持 CPU 复位并读取 printk → 验证完整
 `USERSPACE_CHECK_PASS` 且无失败/panic → 再次干净装载/启动 → 检查运行轨迹 → 留 CPU 运行。
 预计数十分钟，逐阶段日志和 `result.json` 写入新目录，拒绝覆盖旧目录。

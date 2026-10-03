@@ -1,4 +1,5 @@
 module rv64_bram_soc #(
+  parameter bit JTAG_CONSOLE = 1'b0,
   parameter integer UART_BIT_CYCLES = 434,
   parameter logic USE_DDR3_MODEL = 1'b0,
   parameter logic USE_DDR3_EXTERNAL = 1'b0,
@@ -13,6 +14,12 @@ module rv64_bram_soc #(
   output logic [2:0]  led,
   output logic        uart_tx,
   input  logic        uart_rx,
+  input logic console_rx_valid,
+  input logic [7:0] console_rx_data,
+  output logic console_rx_ready,
+  output logic console_tx_valid,
+  output logic [7:0] console_tx_data,
+  input logic console_tx_ready,
   output logic        debug_commit_valid,
   output logic [63:0] debug_commit_pc,
   output logic [31:0] debug_commit_instruction,
@@ -680,7 +687,7 @@ module rv64_bram_soc #(
     end
   end
 
-  rv64_uart #(.BIT_CYCLES(UART_BIT_CYCLES)) uart (
+  rv64_uart #(.BIT_CYCLES(UART_BIT_CYCLES), .JTAG_CONSOLE(JTAG_CONSOLE)) uart (
     .clk(clk),
     .reset(reset),
     .request(uart_request),
@@ -691,6 +698,9 @@ module rv64_bram_soc #(
     .ready(uart_ready),
     .tx(uart_tx),
     .rx(uart_rx),
+    .console_rx_valid(console_rx_valid), .console_rx_data(console_rx_data),
+    .console_rx_ready(console_rx_ready), .console_tx_valid(console_tx_valid),
+    .console_tx_data(console_tx_data), .console_tx_ready(console_tx_ready),
     .interrupt(uart_interrupt)
   );
 

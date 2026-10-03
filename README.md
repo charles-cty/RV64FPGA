@@ -65,15 +65,21 @@ propagation、incrementing bursts and CPU-reset release rule.
 执行 `soc_boot_image` 前先运行 `scripts/build-boot-image.sh` 生成 boot ROM hex。
 执行 `make linux-handoff` 可生成 ROM/DDR3 payload 镜像并运行 ROM→DDR3 handoff smoke test。
 
-## 当前状态（2026-09-30）
+## 当前状态
 
 Linux 6.12 + OpenSBI 1.6 + BusyBox 已在 XC7K480T 实板启动，并通过
 `USERSPACE_CHECK_PASS proc sysfs tmpfs sleep fork exec wait`。干净重启再次进入
 U-mode，后续捕获到正常定时器处理。最新位流仅在 SRAM，尚未写入 Flash。
-UART RX 尚未接通，不能声称已提供可交互终端；长期稳定性尚未验收。
+实体 UART RX 尚未接通；JTAG 字符终端已于 2026-10-03 通过实板交互验收。
+可在 WSL 终端执行命令，shell 功能自检和断开重连均通过；长期稳定性尚未验收。
 
-主源码已对齐成功位流输入，文件哈希与产物身份保存在
-[成功基线](verification/linux-userspace-pass-20260930.json)。关键缺陷回归纳入测试入口。
+[JTAG 字符终端使用说明](docs/bringup/jtag-console.md) 包含连接命令、限制及证据。
+本次还修复了启动流程中 ECC 内存初始化不完整的问题：装载 Linux 前先初始化全部
+512 MiB DDR，避免读取新分配内存时出现总线错误。
+
+当前源码、位流及软件身份保存在
+[当前成功基线](verification/jtag-console-pass-20261003.json)；
+[2026-09-30 历史基线](verification/linux-userspace-pass-20260930.json) 保留不变。
 
 - [正式构建、预检及实板验收](docs/bringup/maintained-workflow.md)
 - [本机依赖清单](docs/project/local-dependencies.md)
