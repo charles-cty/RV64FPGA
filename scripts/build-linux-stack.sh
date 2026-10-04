@@ -38,11 +38,12 @@ install -D -m 0644 "${build_root}/rv64fpga-fw_payload.bin" \
 install -D -m 0644 "${build_root}/SHA256SUMS" \
   "${published_root}/SHA256SUMS"
 # Publish inputs needed by the maintained acceptance command alongside payload.
-for pair in 'busybox:rootfs/bin/busybox' 'busybox.config:busybox/.config'             'busybox.links:busybox/busybox.links' 'init:rootfs/init'             'initramfs-devices.list:initramfs-devices.list'; do
+for pair in 'busybox:rootfs/bin/busybox' 'busybox.config:busybox/.config'             'busybox.links:busybox/busybox.links' 'init:rootfs/init'             'initramfs-devices.list:initramfs-devices.list' \
+            'busybox-selftest:rootfs/usr/bin/busybox-selftest'; do
   install -D -m 0644 "${build_root}/${pair#*:}" "${published_root}/${pair%%:*}"
 done
 (
   cd "${published_root}"
   sha256sum linux/.config linux/arch/riscv/boot/Image vmlinux System.map \
-    rv64fpga-model.dtb rv64fpga-fw_payload.bin busybox busybox.config busybox.links init initramfs-devices.list > SHA256SUMS
+    rv64fpga-model.dtb rv64fpga-fw_payload.bin busybox busybox.config busybox.links init initramfs-devices.list busybox-selftest > SHA256SUMS
 )

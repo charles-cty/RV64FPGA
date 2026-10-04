@@ -1,0 +1,90 @@
+#!/bin/busybox sh
+# Run explicitly; never part of PID 1. Host mode uses a supplied QEMU runner.
+set -eu
+b() {
+    if [ -n "${BUSYBOX_TEST_RUNNER:-}" ]; then
+        "$BUSYBOX_TEST_RUNNER" "${BUSYBOX_TEST_BINARY:?}" "$@"
+    else
+        /bin/busybox "$@"
+    fi
+}
+pass() { echo "BUSYBOX_CHECK_PASS $1"; }
+d=$(b mktemp -d /tmp/busybox-check.XXXXXX)
+stty_saved=
+trap 'if [ -n "$stty_saved" ]; then b stty -F /dev/ttyS0 "$stty_saved"; fi; b rm -rf "$d"' EXIT
+b mkdir -p "$d/sub"
+b printf 'gamma\nalpha\nbeta\nalpha\n' > "$d/input"
+b cp "$d/input" "$d/sub/copy"
+b cmp "$d/input" "$d/sub/copy"
+b mv "$d/sub/copy" "$d/sub/moved"
+test ! -e "$d/sub/copy"
+b ls -la "$d/sub" | b grep moved
+(cd "$d"; b pwd) | b grep "$d"
+b ln -s input "$d/link"
+test "$(b readlink "$d/link")" = input
+b find "$d/sub" -type f | b grep moved
+b stat "$d/input" >/dev/null
+pass files
+b sort "$d/input" | b uniq > "$d/sorted"
+test "$(b head -n 1 "$d/sorted")" = alpha
+test "$(b tail -n 1 "$d/sorted")" = gamma
+test "$(b wc -l < "$d/sorted")" -eq 3
+b sed 's/alpha/delta/g' "$d/input" | b grep delta
+test "$(b awk 'BEGIN {print 1.5 * 4}')" = 6
+b cut -c 1 "$d/sorted" | b tr '\n' ' ' | b grep 'a b g'
+test "$(b seq 1 3 | b paste -sd, -)" = 1,2,3
+b printf 'one\ntwo\n' | b xargs /bin/echo | b grep 'one two'
+b echo '6*7' | b bc | b grep '^42$'
+b diff "$d/input" "$d/sub/moved"
+pass text
+b tar -cf "$d/data.tar" -C "$d" input
+b mkdir "$d/extracted"
+b tar -xf "$d/data.tar" -C "$d/extracted"
+b cmp "$d/input" "$d/extracted/input"
+b gzip -c "$d/input" > "$d/data.gz"
+b gzip -dc "$d/data.gz" > "$d/decoded"
+b cmp "$d/input" "$d/decoded"
+b bzip2 -c "$d/input" > "$d/data.bz2"
+b bunzip2 -c "$d/data.bz2" > "$d/decoded"
+b cmp "$d/input" "$d/decoded"
+b base64 "$d/input" > "$d/base64"
+b base64 -d "$d/base64" > "$d/decoded"
+b cmp "$d/input" "$d/decoded"
+b echo /Td6WFoAAATm1rRGAgAhARYAAAB0L+Wj4AAWABVdADOYShGOhxNSTbw88OdeL7wfdTYAAAAAAABRPdC5XR5V7gABMRdeNwhlH7bzfQEAAAAABFla | b base64 -d > "$d/data.xz"
+b xz -dc "$d/data.xz" > "$d/decoded"
+b cmp "$d/input" "$d/decoded"
+pass archives
+b sha256sum "$d/input" > "$d/sum"
+b sha256sum -c "$d/sum"
+b md5sum "$d/input" > "$d/sum"
+b md5sum -c "$d/sum"
+b dd if="$d/input" of="$d/dd" bs=1 count=5 2>/dev/null
+test "$(b cat "$d/dd")" = gamma
+pass checksums
+b ps | b head -n 5
+b uname -a
+b free -h
+b df -h /tmp
+b du -sh "$d"
+b uptime
+b date +%s
+if [ "${1:-}" != --host ]; then
+    b dmesg > "$d/dmesg"
+    b grep USERSPACE_CHECK_PASS "$d/dmesg"
+    saved=$(b stty -F /dev/ttyS0 -g)
+    stty_saved=$saved
+    b stty -F /dev/ttyS0 -echo
+    changed=$(b stty -F /dev/ttyS0 -g)
+    b stty -F /dev/ttyS0 "$saved"
+    stty_saved=
+    test "$saved" != "$changed"
+    test "$(b stty -F /dev/ttyS0 -g)" = "$saved"
+fi
+pass system
+b rm -rf "$d/sub"
+test ! -e "$d/sub"
+b test 3 -gt 2
+b timeout 5 /bin/echo timeout-ok
+pass cleanup
+b --list | b wc -l
+echo BUSYBOX_SELFTEST_PASS

@@ -1,0 +1,243 @@
+{
+  "schema": 1,
+  "name": "busybox-full-pass-20261004",
+  "source_snapshot": "build/busybox-full-source-20261004",
+  "source_sha256": {
+    "rtl/riscv_pkg.sv": "e22165ed118741b85139889c2993b8433fb021bfa697c06072016bc3e33cf51e",
+    "rtl/rv64_alu.sv": "7e54d7a87f6786634c65bc9db661f69daac0488a9316e5155a0e529bc382de80",
+    "rtl/rv64_async_memory_bridge.sv": "7626d54453a65cde7e50b55e22d25abda88cb714c26b2be0f50769892874d761",
+    "rtl/rv64_atomic_unit.sv": "67ee14d57f553c1c71d30945911210b6026593115fd68023ee27291baa1b9251",
+    "rtl/rv64_bram_soc.sv": "1c03499a10e2ff1281b8cef6842ad18d1ca7c4fd5398b6f49ccbcaa8e10020a1",
+    "rtl/rv64_cache.sv": "ee8d56eaf4ce18d0f88f64e1c41a3c9e4f64e628f16b597ed4925ee54afd4520",
+    "rtl/rv64_clint.sv": "6f2960802bb9507c9d7668ab8b9ffa1e2c94207c18fc3d6f4b079aff76095521",
+    "rtl/rv64_core.sv": "7bc38ac96615585775905bef031385dfe78abfb6eebcab12c66cfce9279f179f",
+    "rtl/rv64_csr.sv": "ab085545f4915611c286c6345a075f462bb725f1d753cf8b8cf4445b8a5a84cb",
+    "rtl/rv64_ddr3_arbiter.sv": "0f76869c7e4912f258fee42925429b8f45f95d5f93f263c8d4ef23395165f1e4",
+    "rtl/rv64_ddr3_axi_adapter.sv": "e17b3ab28a49d24cd3dc4d2d50225043b7298b3f1d959b5b36b86c889c547d3b",
+    "rtl/rv64_ddr3_clock_frequency_probe_top.sv": "263c320f142dc07fdafed3ef3e2583255200924f93ea5e98a4bd310ffa131838",
+    "rtl/rv64_ddr3_clock_probe_top.sv": "9301c1c20cdcd538585a98812ddd6a443fee87f2aa124ea01079e8ff76461463",
+    "rtl/rv64_ddr3_diag_controller.sv": "42cc8ce451c421645efdfcd687f9def61e55078023d5f8dbd2a9de00d34e402f",
+    "rtl/rv64_ddr3_mig_atomic_path.sv": "35ed8e92fe167669d013e3c7798d8b552744393551cf91613719fda311feabb6",
+    "rtl/rv64_ddr3_mig_path.sv": "5290264c71732b5661df74bdd8844ac13b2b9cde9b8d996abea82b3f2f951623",
+    "rtl/rv64_ddr3_mig_shared_path.sv": "f34b10d295374221b4af90c377727085ec3b152588a7df2abe23c6adeef7a6d9",
+    "rtl/rv64_ddr3_model.sv": "84c83c9fc606a50c9b97cda441e70e0bbbcfae74993f5cc3b228a970a35a419c",
+    "rtl/rv64_decoder.sv": "48e834304788183454a3d39f4966c01a1888595b28c06dbc64af8f4d3407f612",
+    "rtl/rv64_divider.sv": "e3299b6d7ef799c705c563a48855c8931bc3e349686283a50e67c42a118000ff",
+    "rtl/rv64_imm_gen.sv": "cd358c64e28d450937b7a2efe0363788bf0df3ce81fcc9ec60f81ac3274f25dc",
+    "rtl/rv64_jtag_axi_loader.sv": "789cf3444c657e2df5df86a0593aa85f45838d25430d7aba9bbe19a335c3bb4e",
+    "rtl/rv64_led_walk_top.sv": "2c16b17fe8e55971f0c60d466c6ea52de0e9f18ea381f891485ce2ebc6358eda",
+    "rtl/rv64_mig_ddr3_diag_top.sv": "fdb630bc987c771d71a5c24c495503052ebbf79f1e84dfeaf29f38f9ac231f1b",
+    "rtl/rv64_mig_soc_top.sv": "606a85e1f7ced2567cb635cd3813d815fef980204eda389064bf143d51f55e49",
+    "rtl/rv64_mmu.sv": "38b9cc7de61390af2ffed80ec4aa4b5143b3ea5b6031a024dc57302afe2c60c4",
+    "rtl/rv64_plic.sv": "8c26d5097179ca46869ac83365119ead168539f080157f0912d6a63026500d07",
+    "rtl/rv64_regfile.sv": "070b05421ba9d28476f04f16ef086a8ccd5c7523c1e3010ae2e418bba5e45816",
+    "rtl/rv64_startup_reset.sv": "dfe3735f508f0b2409c6dbedb73114f54ed28f9d7cde428143ae6f2e73dd30ef",
+    "rtl/rv64_uart.sv": "19d7445d6ea26359741bd510be006ab9b47fb2574ba048b3648bb1f91f297e51",
+    "constraints/rv64_ddr3_clock_frequency_probe.xdc": "b41ec36b7bf28b43c0b67a3bce830a6fd57174477fe1e8574a81712fe3898e98",
+    "constraints/rv64_ddr3_clock_probe.xdc": "b41ec36b7bf28b43c0b67a3bce830a6fd57174477fe1e8574a81712fe3898e98",
+    "constraints/rv64_led_walk_top.xdc": "05e2d4183040da2582b6da8f2cf904d9acca0efcaa9483c2b0b2310454aef6bb",
+    "constraints/rv64_mig_soc_top.xdc": "e0c239c4ab4c2e937e2f30c8bb0d9b3d480f05436dde8cda1dd1292211ca8914",
+    "ip/rv64_mig_ch0/rv64_mig_ch0/rv64_mig_ch0.xci": "cc74ddb4d958b55c19aedf24ff499c3b3b53381935f0482e6a93c30f774b0c0b",
+    "ip/rv64_mig_ch0/rv64_mig_ch0/mig.prj": "506fb4cc81fe639548564fdfabf626e6b81b914147ee8fa11e944c33017a33f6",
+    "ip/rv64_jtag_axi/rv64_jtag_axi/rv64_jtag_axi.xci": "736604408c3487fcddb53109e91a69f529bb1d2ccbd2e4d4b86b595f5db9c1d1",
+    "ip/rv64_debug_ila/rv64_debug_ila/rv64_debug_ila.xci": "f370dfd93cebb51756e16c335d05fe3be49d8437bcc8031740e0fbd608e5380e",
+    "scripts/synth-rv64-mig-project.tcl": "c9181ffdfbcecb21bccbc9c1f249ed12cc1f68a3596fe12702f5f0edfa23321a",
+    "scripts/impl-rv64-mig-checkpoint.tcl": "4a064e03f7e25721fda830e13f3847920b626889420f62f331a91b146ff96fc6",
+    "rtl/rv64_jtag_console.sv": "9d9427e9e8879f5a00d0f8c9eb2af938afede792ac5c04fdc8de28f1031eaaef",
+    "sw/boot/ddr-scrub.S": "a4b9f29834f29456abe6e940b619c9c696541ff8823c416a48f7561b9865d70e",
+    "scripts/build-ddr-scrub.sh": "c629958a6d36b48a736d4a420500b9076efb1abc51935db1b7d7994689a1fee7",
+    "scripts/rv64-ddr-scrub.tcl": "d0575c82a729f57f9ce39fcbf682a7ddf9f54a98dcf0e225eb98e7b3a7e6550d",
+    "scripts/load-rv64-linux-jtag.tcl": "091f6b133d646a060e9f2a88d4e93d400dc9f552f7bc449c824fc09a417c88f1",
+    "scripts/jtag-console.tcl": "0adad65d88bdf0e6b765751d27074412664830fea44ac297339dbf40c01e2dcc",
+    "tools/jtag_terminal.py": "b876c263d3750cb0efba1f8306572e349c1425a11a7bd8633efe24337a050781",
+    "tools/run_jtag_console_acceptance.py": "b3ffeceedfcfa6d15b07e08ca27eeb8c7bb8070e7a2ef8d51b6da38e36f51492",
+    "tools/run_linux_acceptance.py": "6f8f8eb8863482053f20c2fd3b3f71d023db3a5a23bec5c5bc6a31807ed370cb",
+    "tools/check_linux_baseline.py": "6ac33a5ade1e1dfca662108d80d0141c6492455c1de425f5de4452cb0fcfb099",
+    "scripts/invoke-vivado-job.ps1": "86a5e774abe6632080d27c13ddab5e8ffda3468d007a81845cf969191c355c31",
+    "scripts/capture-rv64-linux-entry.tcl": "7c5b5cae8613c546523931026ddcc1b1ae72848386cf5094254ba48ececedc5c",
+    "scripts/program-jtag-bitstream.tcl": "026f825a7bb8af37d91f22cfaabec6f328dee9a8c4bd1afe07f87f9128952531",
+    "scripts/run-xsim.ps1": "fb1078d9f1452a940eff4c069569debd7b685de07b25a7d73ec622a09fa04e75",
+    "scripts/run-m5-model-regression.sh": "4f2e413aa213ab9362db4cf3931b0f314395157efae9902bb79147f01781e94c",
+    "sim/tb_rv64_jtag_console.sv": "dab0aeb27f53106017054c44de28e5341b98cda73860f9f6d14c2de606c6ae66",
+    "sim/tb_rv64_ddr_scrub.sv": "13038666ebfe0582405998a7f7863b6725f55141fc825cf5fb075f9aa98b88db",
+    "tests/test_jtag_console.py": "6a6b372343a3baadbcf71789c8879bfd681e0e70f2bb9994e142c4e9f17b5b33",
+    "tests/test_jtag_loader_script.py": "47cc7190260cf539edb62636411f277cf6aa3c10f45a6fce86506aa4d242a204",
+    "scripts/jtag-terminal.ps1": "4946036b5ea5dc966449164530d9caab4099edbfe4530786eb58d2972ee85153",
+    "scripts/build-linux-stack.sh": "dddfae0efafe20aadd51fd840dbc5ab2c4a098d6a8fd12aceb9511589fb9d1e0",
+    "scripts/build-linux-stack-inner.sh": "070855f0f92d333fd9e833b563e52eb6f1db4b66b69dddee2498aa26276a5796",
+    "scripts/rv64-musl-busybox-cc.sh": "b3e5fe2925c08163e5952b979881a5148b48736397068b09eb5fa31299d5258b",
+    "scripts/fetch-linux-sources.sh": "7963161b30cd56b3cd14aec52df42bff2a4450bc7f2cafbb349acfc154d041e4",
+    "sw/linux/init": "cea8ede0ad793aa804efd393b1b1cdcffd92a9c4e21832de04d099bd09842117",
+    "sw/linux/rv64fpga.fragment": "d759273ccb0566fa85c828ee7846e93dcd099dbe58ab4be484f1185941d26a4c",
+    "sw/linux/busybox.config": "361e6dd8f23451491ef89e0fe1b71ae49ae8e81f7e35d4e4cba5bbb1eb9ec25d",
+    "sw/linux/busybox.applets": "944d2d22a9bf0a6314f2327b5bf7853847e3196664c2c7485564bd2703bf7d91",
+    "sw/linux/busybox-selftest": "d76e527e1064e3bec1bb53482c3cc6abfd2731cdcdebf63f955d0cc81238de90",
+    "sw/dts/rv64fpga-model.dts": "5dbe08fa388493f4427e3e5374749e087164391bd45665d34a4a337c66e32dfe",
+    "containers/linux-builder/Containerfile": "086edf14e2f1e96046e81b6cd29cabb2e73d9bf93999c4da075d88956d68c1c4"
+  },
+  "artifacts": {
+    "bitstream": {
+      "path": "build/jtag-console-hardware-20261002/bitstream/rv64_mig_soc_top.bit",
+      "sha256": "7de263a8d4056f2596e3cafdf2d99878e40226b12be2be92d4a20450a4aed61f"
+    },
+    "probes": {
+      "path": "build/jtag-console-hardware-20261002/bitstream/rv64_mig_soc_top.ltx",
+      "sha256": "5a577abbf97c65bfebe92c37e4a3ef9af07ec4f1fc9aed6f88f75cad4eefbc84"
+    },
+    "boot_rom": {
+      "path": "build/boot/boot_rom.hex",
+      "sha256": "d1a07c40af4bd7ac705816e70531d1ddf4c1296ad0543f90a24838a0e6cb94cb"
+    },
+    "payload": {
+      "path": "build/linux-full-20261004/rv64fpga-fw_payload.bin",
+      "sha256": "a8c806382d1333ce4cb0b2aeda8504cfbfddd87d9249060dc407cf35fd01f3a0"
+    },
+    "symbols": {
+      "path": "build/linux-full-20261004/System.map",
+      "sha256": "7ba4109d9201d664899cfce6cfa11a24a0806d4d043ebf4e89b791b5fe64f16b"
+    },
+    "linux_config": {
+      "path": "build/linux-full-20261004/linux/.config",
+      "sha256": "12e155aa7edae7d5c370afcc4556e3d65c74caa165651c069faf30e0d7993e22"
+    },
+    "busybox": {
+      "path": "build/linux-full-20261004/busybox",
+      "sha256": "6006b5873ff9ef7c2dd6be431f09e4c86ecadca3e6a3f36aaf2a4f60f2804a71"
+    },
+    "ddr_scrub": {
+      "path": "build/boot/ddr-scrub.bin",
+      "sha256": "4de13fe04c800cfc4094cc502de70cc8355238d76bfc5177cda96b386ebb11be"
+    },
+    "busybox_config": {
+      "path": "build/linux-full-20261004/busybox.config",
+      "sha256": "c204510e5285eb820cf070bf38abf53391f4b3543e2d555314e3f54466762292"
+    },
+    "busybox_links": {
+      "path": "build/linux-full-20261004/busybox.links",
+      "sha256": "cbf49c3d81dad238f4ed6e8ed3bea6918b63ee1a7630fb8d2f2c269397b9bc64"
+    },
+    "busybox_selftest": {
+      "path": "build/linux-full-20261004/busybox-selftest",
+      "sha256": "d76e527e1064e3bec1bb53482c3cc6abfd2731cdcdebf63f955d0cc81238de90"
+    },
+    "init": {
+      "path": "build/linux-full-20261004/init",
+      "sha256": "cea8ede0ad793aa804efd393b1b1cdcffd92a9c4e21832de04d099bd09842117"
+    },
+    "devices": {
+      "path": "build/linux-full-20261004/initramfs-devices.list",
+      "sha256": "916bfc1f64d31de0f93131bd705cda961a22d11bc98f985e09181fc529888aa7"
+    },
+    "dtb": {
+      "path": "build/linux-full-20261004/rv64fpga-model.dtb",
+      "sha256": "4a13d5dcb16b539757f5acf90941f2e60027f3baf7fc7ac9728edf08e2ae49e7"
+    },
+    "kernel_image": {
+      "path": "build/linux-full-20261004/linux/arch/riscv/boot/Image",
+      "sha256": "11be67fdc66feece84b17efa3d71e972f80fa97ded927a01061d5b689a4714f0"
+    }
+  },
+  "evidence": {
+    "acceptance_manifest": {
+      "path": "build/busybox-full-board-20261004/manifest.json",
+      "sha256": "15f2c8700b3be15dd2e560fe3ceea998ef0a7e7277877f8f9599d67c3e1dde68"
+    },
+    "acceptance_result": {
+      "path": "build/busybox-full-board-20261004/result.json",
+      "sha256": "f0ff0ad132e543cd141202d60ab0ddd686c028642098a2ce87013b7ea3d13bc3"
+    },
+    "extended_result": {
+      "path": "build/busybox-full-board-20261004/extended-result.json",
+      "sha256": "bebc95cb7741b3d46a6d2befc288cf07bb01d11912f3505e56572cf72e6140f6"
+    },
+    "load": {
+      "path": "build/busybox-full-board-20261004/load.log",
+      "sha256": "b4037a634c51ce2f885006d7736f55d124379f089b4fbd809623db5517fca02d"
+    },
+    "entry": {
+      "path": "build/busybox-full-board-20261004/user.csv",
+      "sha256": "ab9ad4df39e34947b25f7686a60bbab45a31c6463d71acdf4c83dd769c333f07"
+    },
+    "basic_selftest": {
+      "path": "build/busybox-full-board-20261004/selftest.log",
+      "sha256": "6d06ca05f4126dc78a34b1eff3e5b1e1bb1bb4764a5e3bd1533a417187346a42"
+    },
+    "basic_reconnect": {
+      "path": "build/busybox-full-board-20261004/reconnect.log",
+      "sha256": "36a6f0718c57829104c6d481b478a00c2a2bfdbf6f4ef8c1dbf7af667633412c"
+    },
+    "extended_script": {
+      "path": "build/verify-busybox-full-board-20261004.py",
+      "sha256": "1b33f1ebd44e9ce8b058dbc93f78406387f69f230ff7298d9a8d2965af75f413"
+    },
+    "extended_input": {
+      "path": "build/busybox-full-commands-20261004/input.bin",
+      "sha256": "7ef6cb3f320b02338547430d56d845473b1c92de3902d0a38289c1618937e9fb"
+    },
+    "extended_timeout_log": {
+      "path": "build/busybox-full-commands-20261004.log",
+      "sha256": "ca2a252df557dcc0d4d73613bd726dae5fd3671230349f6a0f80c8e625f2fb2f"
+    },
+    "recovered_output": {
+      "path": "build/busybox-full-recheck-20261004/output.bin",
+      "sha256": "b231b83d1b40260937d73cb1751931ca45184c2b9c823bc3abe46be7c4c35772"
+    },
+    "reconnect_input": {
+      "path": "build/busybox-full-recheck-20261004/input.bin",
+      "sha256": "c42a878fc381e683d7c13452442aa04d2dae7ae37a54e770047a0f3c8a7391e0"
+    },
+    "recovered_log": {
+      "path": "build/busybox-full-recheck-20261004.log",
+      "sha256": "885a35b2978799d7e37d4cbddf870eb62cff7f0ff5319cead50f0849696a7436"
+    },
+    "host_selftest": {
+      "path": "build/busybox-full-host-selftest.log",
+      "sha256": "29c584abc58be57ef6884082f34adf7b27d99646575af8ab7ea0acd403f4b1fe"
+    },
+    "host_help": {
+      "path": "build/busybox-full-help-check.json",
+      "sha256": "89bf70d0d821b6db94f6c37d516025e39aed9aa183175b2d2525d270de739e5b"
+    },
+    "elf": {
+      "path": "build/busybox-full-elf.txt",
+      "sha256": "8131c6ed3722d0cadc84ca36b899c3fd5b5b2371a4b6477d3f3566c2cdbcb88b"
+    },
+    "python_tests": {
+      "path": "build/busybox-full-python-tests.log",
+      "sha256": "87a37732908d916d97f4d043ba79d2205a1d287e5213868bc22b68f87e5d5a60"
+    }
+  },
+  "verification": {
+    "status": "BUSYBOX_FULL_BOARD_PASS",
+    "applet_count": 401,
+    "busybox_bytes": 2115704,
+    "hardware": [
+      "512 MiB DDR ECC initialization",
+      "complete payload load/readback",
+      "BusyBox U-mode entry",
+      "basic shell selftest and disconnect/reconnect",
+      "401 applet count and binary SHA-256 on target",
+      "files/text/archives/checksums/system/cleanup selftest",
+      "dmesg reads USERSPACE_CHECK_PASS",
+      "ttyS0 echo change/readback/restore"
+    ],
+    "host": [
+      "401 dispatch/help invocations without crash",
+      "same functional selftest except target dmesg/ttyS0",
+      "53 Python regression tests"
+    ],
+    "skipped_default_applets": {
+      "tc": "BusyBox 1.36.1 CBQ types unavailable in Linux 6.12 headers"
+    },
+    "limitations": [
+      "not exhaustive functional coverage of all 401 applets/options",
+      "network/modules/namespaces need kernel support",
+      "device and service tools need devices/configuration",
+      "shell reports no controlling tty, job control disabled"
+    ],
+    "completion_note": "First extended check exceeded host 600-second timeout; reconnect recovered all complete stage markers and original nonce, matching SHA-256, then a fresh reconnect nonce. No reload/reset was performed.",
+    "cpu_state": "left running",
+    "flash_modified": false,
+    "verified_utc": "2026-10-04T08:26:15.350350+00:00"
+  }
+}

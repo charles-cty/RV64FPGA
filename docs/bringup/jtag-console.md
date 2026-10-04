@@ -129,7 +129,11 @@ python3 tools/jtag_terminal.py --smoke --timeout 120 \
 判成功。成功输出 `JTAG_CONSOLE_SMOKE_PASS`，失败退出非零。首次上板还需验证
 `cat /proc/uptime`、多行输入、断开重连，及完整 Linux 自检无回归；通过前不可称作交互已验收。
 
-当前 BusyBox 仅含 sh/ash、cat、mount、sleep；没有 ls/stty，也未启用 ash 作业控制。
+2026-10-03 原归档 BusyBox 仅含 sh/ash、cat、mount、sleep。
+2026-10-04 新软件已上板并通过 17 个常用命令验收，包含 `ls`、`stty`，见
+[命令清单及重放入口](maintained-workflow.md#busybox-常用命令)。同日又扩展为
+[401 命令版本](busybox.md)，已通过实板自检；该配置编入 ash 作业控制功能，
+但当前启动方式没有控制终端，运行时仍关闭作业控制。
 JTAG 字符通道针对低速 bring-up 使用，不作高吞吐串口或网络终端。
 
 

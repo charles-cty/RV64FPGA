@@ -74,6 +74,14 @@ U-mode，后续捕获到正常定时器处理。最新位流仅在 SRAM，尚未
 可在 Windows 原生 PowerShell 中运行 `.\scripts\jtag-terminal.ps1` 交互操作，
 无需调用 WSL；shell 功能自检、多行输入和断开重连均通过。长期稳定性尚未验收。
 
+新构建已补齐 BusyBox 常用文件、文本、系统状态和终端工具，详见
+[命令清单与验证范围](docs/bringup/maintained-workflow.md#busybox-常用命令)。
+2026-10-04 新软件镜像已上板，17 个新增命令、原 shell 自检及重连全部通过，
+独立记录见 [BusyBox 工具实板验收](verification/busybox-tools-pass-20261004.json)。
+当前构建进一步扩展为 401 个 BusyBox 命令，已通过实板哈希核对和扩展功能自检；
+[完整命令集验收记录](verification/busybox-full-pass-20261004.json)。配置、自检及运行限制见
+[完整 BusyBox 命令集](docs/bringup/busybox.md)。
+
 [JTAG 字符终端使用说明](docs/bringup/jtag-console.md) 包含连接命令、限制及证据。
 本次还修复了启动流程中 ECC 内存初始化不完整的问题：装载 Linux 前先初始化全部
 512 MiB DDR，避免读取新分配内存时出现总线错误。

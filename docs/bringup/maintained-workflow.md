@@ -38,6 +38,48 @@ pwsh.exe -WorkingDirectory 'C:\Windows\Temp' \
 IP 输入纳入 Git，派生产物由 Vivado 生成。外部 MIG 配置必须显式传入且哈希匹配。
 正常 Linux 镜像使用 BusyBox `/init`；`RV64FPGA_MINIMAL_INIT=1` 仅用于诊断。
 
+### BusyBox 常用命令
+
+当前构建已扩展为 401 个命令，完整配置、例外和自检入口见
+[BusyBox 命令集](busybox.md)。下述 17 项记录对应此前的精简版实板验收。
+401 命令版本也已通过实板自检，当前软件验收清单为
+`verification/busybox-full-pass-20261004.json`；旧软件记录重放前需匹配其归档源码。
+
+正常构建保留 `sh、mount、sleep、cat`，并包含
+`ls、pwd、mkdir、rm、cp、mv、echo、ps、uname、dmesg、free、df、du、head、tail、grep、stty`。
+命令由 BusyBox 提供，安装到 `/bin` 或 `/usr/bin`，已包含在 `/init` 的 PATH 中。
+支持 `ls -la`、`ls -R`、`df -h`、`du -sh`、`head -n N`、`tail -n N` 等常用选项；
+`free` 使用精简版默认输出。`ps` 和 `free` 依赖已挂载的 `/proc`，
+`stty` 可用 `stty -F /dev/ttyS0 -g` 读取可恢复的终端设置；`-a` 的窗口尺寸查询
+可能产生提示，终端属性读取、修改和恢复已通过实板检查。
+
+执行 `make linux-stack` 后，新镜像为 `build/linux/rv64fpga-fw_payload.bin`；
+`busybox.config`、`busybox.links` 和 `SHA256SUMS` 同目录发布。
+构建检查全部必需命令的安装清单，缺失时失败。裸机 GCC 通过 musl 构建 Linux
+用户态时显式定义 `__linux__`，使 `free` 等命令包含正确的 Linux 接口头文件。
+
+本次构建已完成，并核对 BusyBox 及全部命令链接进入 initramfs、initramfs 进入
+Image、Image 进入 OpenSBI payload。BusyBox SHA-256 为
+`1e35387629c7a1b8d0e2fac132cf732915a531bc24383f1a9c4ea29412d805d9`。
+QEMU user-mode 下上述新增命令中 16 项功能检查通过，包含伪终端上的 `stty` 读取及修改；
+`dmesg` 的 `klogctl` 在 QEMU 中返回 `Invalid argument`。
+本地检查结果为 `build/busybox-tools-check.json`。
+
+2026-10-04 新镜像实板验收通过：完整 DDR 初始化、装载回读、U-mode 入口、原 shell
+自检、断开重连及全部 17 个命令均通过；`dmesg` 读到了内核的 `USERSPACE_CHECK_PASS`。
+`stty` 在 `/dev/ttyS0` 上关闭回显、读回确认及恢复原配置通过。Linux 留在运行状态，
+Flash 未写入。软件归档为 `build/linux-tools-20261004/`，独立成功清单为
+`verification/busybox-tools-pass-20261004.json`。重放命令如下：
+
+```bash
+python3 tools/check_linux_baseline.py --manifest verification/busybox-tools-pass-20261004.json --artifacts
+python3 -u tools/run_jtag_console_acceptance.py \
+  --manifest verification/busybox-tools-pass-20261004.json --output build/busybox-tools-replay --run
+```
+
+该入口重放启动与 shell 基础验收；逐命令及 stty 验证脚本、输入输出与哈希记录在
+新清单的 `evidence` 中。默认基线仍指向原归档镜像，重放旧基线不会自动装载新命令。
+
 ## JTAG 字符终端验收（推荐）
 
 ```bash

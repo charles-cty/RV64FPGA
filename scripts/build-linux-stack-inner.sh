@@ -23,7 +23,9 @@ fi
 rv64ima_cflags="-march=rv64ima -mabi=lp64"
 fdt_relocation_offset=0x10000000
 musl_cross_compile="riscv64-unknown-elf-"
-busybox_cflags="${rv64ima_cflags} -isystem ${musl_output}/include -isystem ${linux_headers}/include"
+# The bare-metal compiler targets Linux userspace through musl here. BusyBox
+# guards Linux-only headers (including free/sysinfo) with __linux__.
+busybox_cflags="${rv64ima_cflags} -D__linux__ -isystem ${musl_output}/include -isystem ${linux_headers}/include"
 busybox_cc_wrapper="${repo_root}/scripts/rv64-musl-busybox-cc.sh"
 
 for path in "${linux_source}" "${opensbi_source}" "${busybox_source}" "${musl_source}"; do
@@ -61,21 +63,10 @@ make -C "${musl_output}" distclean 2>/dev/null || true
 make -C "${musl_output}" -j"${jobs}"
 make -C "${musl_output}" install
 
-rm -f "${busybox_output}/.config"
-make -C "${busybox_source}" O="${busybox_output}" ARCH=riscv CROSS_COMPILE="${musl_cross_compile}" allnoconfig
-sed -i \
-  -e 's/^# CONFIG_BUSYBOX is not set$/CONFIG_BUSYBOX=y/' \
-  -e 's/^# CONFIG_STATIC is not set$/CONFIG_STATIC=y/' \
-  -e 's/^# CONFIG_ASH is not set$/CONFIG_ASH=y/' \
-  -e 's/^# CONFIG_MOUNT is not set$/CONFIG_MOUNT=y/' \
-  -e 's/^# CONFIG_ASH_ECHO is not set$/CONFIG_ASH_ECHO=y/' \
-  -e 's/^# CONFIG_ASH_TEST is not set$/CONFIG_ASH_TEST=y/' \
-  -e 's/^# CONFIG_SLEEP is not set$/CONFIG_SLEEP=y/' \
-  -e 's/^# CONFIG_CAT is not set$/CONFIG_CAT=y/' \
-  "${busybox_output}/.config"
-# The container and mounted filesystem clocks can differ. allnoconfig may
-# leave generated headers newer than the edited .config, so make otherwise
-# silently compiles the old, shell-only configuration.
+# Pinned BusyBox 1.36.1 defconfig plus RV64IMA/musl platform adjustments.
+# Keep the complete configuration reviewable instead of growing a sed allowlist.
+cp "${repo_root}/sw/linux/busybox.config" "${busybox_output}/.config"
+# Regenerate headers even when the host and container clocks differ.
 rm -f "${busybox_output}/include/autoconf.h" \
       "${busybox_output}/include/config/auto.conf"
 make -C "${busybox_source}" O="${busybox_output}" ARCH=riscv CROSS_COMPILE="${musl_cross_compile}" \
@@ -92,13 +83,11 @@ make -C "${busybox_source}" O="${busybox_output}" ARCH=riscv CROSS_COMPILE="${mu
   CC="${busybox_cc_wrapper}" \
   CFLAGS="${busybox_cflags}" \
   CONFIG_PREFIX="${rootfs}" install
-for applet in sh mount sleep cat; do
-  if ! grep -qx "/bin/${applet}" "${busybox_output}/busybox.links"; then
-    printf 'BusyBox binary is missing required applet: %s\n' "${applet}" >&2
-    exit 1
-  fi
-done
+# Check the entire pinned command set, not only the original small allowlist.
+diff -u "${repo_root}/sw/linux/busybox.applets" \
+  <(LC_ALL=C sort "${busybox_output}/busybox.links")
 install -D -m 0755 "${repo_root}/sw/linux/init" "${rootfs}/init"
+install -D -m 0755 "${repo_root}/sw/linux/busybox-selftest" "${rootfs}/usr/bin/busybox-selftest"
 # The freestanding PID-1 loop is an explicit diagnostic option. Normal builds
 # retain the BusyBox init script and its userspace checks.
 if [[ "$minimal_init" == 1 ]]; then
